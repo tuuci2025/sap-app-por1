@@ -3,7 +3,7 @@ import { MOCK_ROWS } from "@/data/mockPor1Data";
 
 const config: ApiConfig = {
   mode: 'proxy',
-  baseUrl: 'https://213.206.240.182:3001',
+  baseUrl: 'https://10.1.0.88:3001',
 };
 
 export async function fetchOpenPOR1Rows(): Promise<POR1Row[]> {
