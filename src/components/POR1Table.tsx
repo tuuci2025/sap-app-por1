@@ -1,5 +1,10 @@
+import { useState } from "react";
 import { POR1Row } from "@/types/por1";
 import { Checkbox } from "@/components/ui/checkbox";
+import { ArrowUp, ArrowDown, ArrowUpDown } from "lucide-react";
+
+type SortKey = "DocNum" | "CardName" | "ItemCode" | "Dscription" | "OpenQty" | "ShipDate" | "WhsCode";
+type SortDir = "asc" | "desc";
 
 interface POR1TableProps {
   rows: POR1Row[];
@@ -24,6 +29,38 @@ function getDateClass(dateStr: string): string {
 }
 
 const POR1Table = ({ rows, selectedKeys, onToggle, onToggleAll, allSelected }: POR1TableProps) => {
+  const [sortKey, setSortKey] = useState<SortKey | null>(null);
+  const [sortDir, setSortDir] = useState<SortDir>("asc");
+
+  const handleSort = (key: SortKey) => {
+    if (sortKey === key) {
+      setSortDir(d => (d === "asc" ? "desc" : "asc"));
+    } else {
+      setSortKey(key);
+      setSortDir("asc");
+    }
+  };
+
+  const sortedRows = [...rows].sort((a, b) => {
+    if (!sortKey) return 0;
+    const av = a[sortKey];
+    const bv = b[sortKey];
+    if (typeof av === "number" && typeof bv === "number") {
+      return sortDir === "asc" ? av - bv : bv - av;
+    }
+    const cmp = String(av).localeCompare(String(bv));
+    return sortDir === "asc" ? cmp : -cmp;
+  });
+
+  const SortIcon = ({ col }: { col: SortKey }) => {
+    if (sortKey !== col) return <ArrowUpDown className="inline ml-1 h-3 w-3 opacity-40" />;
+    return sortDir === "asc"
+      ? <ArrowUp className="inline ml-1 h-3 w-3" />
+      : <ArrowDown className="inline ml-1 h-3 w-3" />;
+  };
+
+  const thClass = "px-3 py-2.5 text-left font-semibold text-xs uppercase tracking-wider cursor-pointer select-none hover:bg-muted/30 transition-colors";
+
   return (
     <div className="overflow-auto flex-1">
       <table className="w-full text-sm">
@@ -36,17 +73,17 @@ const POR1Table = ({ rows, selectedKeys, onToggle, onToggleAll, allSelected }: P
                 className="border-table-header-foreground data-[state=checked]:bg-primary data-[state=checked]:border-primary"
               />
             </th>
-            <th className="px-3 py-2.5 text-left font-semibold text-xs uppercase tracking-wider">PO #</th>
-            <th className="px-3 py-2.5 text-left font-semibold text-xs uppercase tracking-wider">Vendor</th>
-            <th className="px-3 py-2.5 text-left font-semibold text-xs uppercase tracking-wider">Item Code</th>
-            <th className="px-3 py-2.5 text-left font-semibold text-xs uppercase tracking-wider">Description</th>
-            <th className="px-3 py-2.5 text-right font-semibold text-xs uppercase tracking-wider">Open Qty</th>
-            <th className="px-3 py-2.5 text-left font-semibold text-xs uppercase tracking-wider">Ship Date</th>
-            <th className="px-3 py-2.5 text-left font-semibold text-xs uppercase tracking-wider">Whs</th>
+            <th className={thClass} onClick={() => handleSort("DocNum")}>PO #<SortIcon col="DocNum" /></th>
+            <th className={thClass} onClick={() => handleSort("CardName")}>Vendor<SortIcon col="CardName" /></th>
+            <th className={thClass} onClick={() => handleSort("ItemCode")}>Item Code<SortIcon col="ItemCode" /></th>
+            <th className={thClass} onClick={() => handleSort("Dscription")}>Description<SortIcon col="Dscription" /></th>
+            <th className={`${thClass} text-right`} onClick={() => handleSort("OpenQty")}>Open Qty<SortIcon col="OpenQty" /></th>
+            <th className={thClass} onClick={() => handleSort("ShipDate")}>Ship Date<SortIcon col="ShipDate" /></th>
+            <th className={thClass} onClick={() => handleSort("WhsCode")}>Whs<SortIcon col="WhsCode" /></th>
           </tr>
         </thead>
         <tbody>
-          {rows.map((row, i) => {
+          {sortedRows.map((row, i) => {
             const key = rowKey(row);
             const isSelected = selectedKeys.has(key);
             return (
