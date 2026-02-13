@@ -1,10 +1,12 @@
 import { POR1Row, ApiConfig } from "@/types/por1";
 import { MOCK_ROWS } from "@/data/mockPor1Data";
 
+const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL;
+const SUPABASE_ANON_KEY = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY;
+
 const config: ApiConfig = {
-  // When served from Node.js proxy, use relative paths (no baseUrl needed)
   mode: 'proxy',
-  baseUrl: '/api',
+  baseUrl: `${SUPABASE_URL}/functions/v1/por1-proxy`,
 };
 
 export async function fetchOpenPOR1Rows(): Promise<POR1Row[]> {
@@ -13,7 +15,12 @@ export async function fetchOpenPOR1Rows(): Promise<POR1Row[]> {
   }
 
   // Real MSSQL proxy mode
-  const response = await fetch(`${config.baseUrl}/api/por1/open-rows`);
+  const response = await fetch(`${config.baseUrl}?path=/api/por1/open-rows`, {
+    headers: {
+      'apikey': SUPABASE_ANON_KEY,
+      'Content-Type': 'application/json',
+    },
+  });
   if (!response.ok) throw new Error(`Failed to fetch: ${response.statusText}`);
   return response.json();
 }
@@ -30,9 +37,12 @@ export async function executeShipDateUpdate(
   }
 
   // Real proxy mode — sends SQL to your backend
-  const response = await fetch(`${config.baseUrl}/api/por1/update-shipdate`, {
+  const response = await fetch(`${config.baseUrl}?path=/api/por1/update-shipdate`, {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
+    headers: {
+      'apikey': SUPABASE_ANON_KEY,
+      'Content-Type': 'application/json',
+    },
     body: JSON.stringify({ rows, newDate }),
   });
   if (!response.ok) throw new Error(`Update failed: ${response.statusText}`);
