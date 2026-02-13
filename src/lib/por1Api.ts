@@ -3,7 +3,7 @@ import { MOCK_ROWS } from "@/data/mockPor1Data";
 
 const config: ApiConfig = {
   // Change to 'proxy' and set baseUrl to your backend proxy for real MSSQL data
-  mode: 'mock',
+  mode: 'proxy',
   baseUrl: 'http://213.206.240.182:3001',
 };
 
