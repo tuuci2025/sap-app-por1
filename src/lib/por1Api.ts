@@ -23,7 +23,8 @@ export async function fetchOpenPOR1Rows(): Promise<POR1Row[]> {
 
 export async function executeShipDateUpdate(
   rows: { DocEntry: number; LineNum: number }[],
-  newDate: string
+  newDate: string,
+  updatedBy: string
 ): Promise<{ success: boolean; sql: string; affectedRows?: number }> {
   const pairs = rows.map(r => `(${r.DocEntry}, ${r.LineNum})`).join(",\n    ");
   const sql = `UPDATE POR1\nSET ShipDate = '${newDate}'\nWHERE (DocEntry, LineNum) IN (\n    ${pairs}\n)\nAND LineStatus = 'O';`;
@@ -38,7 +39,7 @@ export async function executeShipDateUpdate(
     headers: {
       'Content-Type': 'application/json',
     },
-    body: JSON.stringify({ rows, newDate }),
+    body: JSON.stringify({ rows, newDate, updatedBy }),
   });
   if (!response.ok) throw new Error(`Update failed: ${response.statusText}`);
   const data = await response.json();

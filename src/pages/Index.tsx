@@ -70,9 +70,9 @@ const Index = () => {
     .filter((r) => selectedKeys.has(rowKey(r)))
     .map((r) => ({ DocEntry: r.DocEntry, LineNum: r.LineNum }));
 
-  const handleUpdate = async (newDate: string) => {
+  const handleUpdate = async (newDate: string, updatedBy: string) => {
     try {
-      const result = await executeShipDateUpdate(selectedRows, newDate);
+      const result = await executeShipDateUpdate(selectedRows, newDate, updatedBy);
       if (result.success) {
         // Update local state to reflect the change
         setRows((prev) =>
