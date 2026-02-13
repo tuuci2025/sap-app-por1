@@ -1,6 +1,6 @@
 import { useState, useEffect, useMemo } from "react";
 import { POR1Row } from "@/types/por1";
-import { fetchOpenPOR1Rows } from "@/lib/por1Api";
+import { fetchOpenPOR1Rows, executeShipDateUpdate } from "@/lib/por1Api";
 import FilterBar from "@/components/FilterBar";
 import POR1Table from "@/components/POR1Table";
 import UpdatePanel from "@/components/UpdatePanel";
@@ -70,18 +70,27 @@ const Index = () => {
     .filter((r) => selectedKeys.has(rowKey(r)))
     .map((r) => ({ DocEntry: r.DocEntry, LineNum: r.LineNum }));
 
-  const handleUpdate = (newDate: string) => {
-    // In mock mode, update locally
-    setRows((prev) =>
-      prev.map((r) =>
-        selectedKeys.has(rowKey(r)) ? { ...r, ShipDate: newDate } : r
-      )
-    );
-    setSelectedKeys(new Set());
-    toast({
-      title: "ShipDate Updated",
-      description: `${selectedRows.length} row(s) updated to ${newDate}`,
-    });
+  const handleUpdate = async (newDate: string) => {
+    try {
+      const result = await executeShipDateUpdate(selectedRows, newDate);
+      if (result.success) {
+        // Update local state to reflect the change
+        setRows((prev) =>
+          prev.map((r) =>
+            selectedKeys.has(rowKey(r)) ? { ...r, ShipDate: newDate } : r
+          )
+        );
+        setSelectedKeys(new Set());
+        toast({
+          title: "ShipDate Updated",
+          description: `${selectedRows.length} row(s) updated to ${newDate} (${result.affectedRows ?? 0} affected in DB)`,
+        });
+      } else {
+        toast({ title: "Update Failed", description: "The database did not confirm the update.", variant: "destructive" });
+      }
+    } catch (err) {
+      toast({ title: "Error", description: `Update failed: ${err instanceof Error ? err.message : "Unknown error"}`, variant: "destructive" });
+    }
   };
 
   return (
