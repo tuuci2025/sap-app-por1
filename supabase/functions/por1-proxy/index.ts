@@ -12,7 +12,8 @@ serve(async (req) => {
   }
 
   const POR1_PROXY_URL = Deno.env.get("POR1_PROXY_URL");
-  console.log("POR1_PROXY_URL value:", POR1_PROXY_URL);
+  console.log("POR1_PROXY_URL raw value:", JSON.stringify(POR1_PROXY_URL));
+  
   if (!POR1_PROXY_URL) {
     return new Response(
       JSON.stringify({ error: "POR1_PROXY_URL is not configured" }),
@@ -22,12 +23,14 @@ serve(async (req) => {
   
   // Ensure the URL has a protocol
   const baseUrl = POR1_PROXY_URL.startsWith("http") ? POR1_PROXY_URL : `http://${POR1_PROXY_URL}`;
+  console.log("Using baseUrl:", baseUrl);
 
   try {
     const url = new URL(req.url);
     const path = url.searchParams.get("path") || "/api/por1/open-rows";
 
     const targetUrl = `${baseUrl}${path}`;
+    console.log("Fetching targetUrl:", targetUrl);
 
     const fetchOptions: RequestInit = {
       method: req.method,
