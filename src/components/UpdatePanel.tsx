@@ -7,12 +7,13 @@ import { generateUpdateSQL } from "@/lib/por1Api";
 interface UpdatePanelProps {
   selectedCount: number;
   selectedRows: { DocEntry: number; LineNum: number }[];
-  onUpdate: (newDate: string) => void;
+  onUpdate: (newDate: string, updatedBy: string) => void;
   onClear: () => void;
 }
 
 const UpdatePanel = ({ selectedCount, selectedRows, onUpdate, onClear }: UpdatePanelProps) => {
   const [newDate, setNewDate] = useState("");
+  const [updatedBy, setUpdatedBy] = useState("");
   const [showSQL, setShowSQL] = useState(false);
   const [copied, setCopied] = useState(false);
 
@@ -37,6 +38,14 @@ const UpdatePanel = ({ selectedCount, selectedRows, onUpdate, onClear }: UpdateP
         </div>
 
         <Input
+          type="text"
+          placeholder="Your name"
+          value={updatedBy}
+          onChange={(e) => setUpdatedBy(e.target.value)}
+          className="w-36 h-9 text-sm"
+        />
+
+        <Input
           type="date"
           value={newDate}
           onChange={(e) => setNewDate(e.target.value)}
@@ -45,7 +54,7 @@ const UpdatePanel = ({ selectedCount, selectedRows, onUpdate, onClear }: UpdateP
 
         <Button
           size="sm"
-          disabled={!newDate}
+          disabled={!newDate || !updatedBy.trim()}
           onClick={() => setShowSQL(true)}
           className="bg-primary text-primary-foreground hover:bg-primary/90"
         >
@@ -75,9 +84,10 @@ const UpdatePanel = ({ selectedCount, selectedRows, onUpdate, onClear }: UpdateP
             size="sm"
             className="mt-2 bg-success text-success-foreground hover:bg-success/90"
             onClick={() => {
-              onUpdate(newDate);
+              onUpdate(newDate, updatedBy);
               setShowSQL(false);
               setNewDate("");
+              setUpdatedBy("");
             }}
           >
             Confirm & Apply
