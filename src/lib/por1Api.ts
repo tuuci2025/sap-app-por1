@@ -2,9 +2,9 @@ import { POR1Row, ApiConfig } from "@/types/por1";
 import { MOCK_ROWS } from "@/data/mockPor1Data";
 
 const config: ApiConfig = {
-  // Change to 'proxy' and set baseUrl to your backend proxy for real MSSQL data
+  // When served from Node.js proxy, use relative paths (no baseUrl needed)
   mode: 'proxy',
-  baseUrl: 'http://213.206.240.182:3001',
+  baseUrl: '/api',
 };
 
 export async function fetchOpenPOR1Rows(): Promise<POR1Row[]> {
