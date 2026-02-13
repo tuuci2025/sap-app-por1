@@ -77,9 +77,10 @@ const UpdatePanel = ({ selectedCount, selectedRows, onUpdate, onClear }: UpdateP
             onClick={() => {
               onUpdate(newDate);
               setShowSQL(false);
+              setNewDate("");
             }}
           >
-            Confirm & Apply (Mock)
+            Confirm & Apply
           </Button>
         </div>
       )}
