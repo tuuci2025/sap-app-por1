@@ -1,0 +1,212 @@
+// ══════════════════════════════════════════════════════════════
+// POR1 Proxy — SERVICE LAYER MODE
+// ══════════════════════════════════════════════════════════════
+// Reads:   Direct MSSQL (fast, read-only)
+// Writes:  SAP Service Layer PATCH (creates ADO1/ADOC audit trail)
+//
+// Location: C:\Users\jborremans\Desktop\POR1\server.js
+// Install:  npm install express mssql cors node-fetch@2
+// Run:      node server.js
+// ──────────────────────────────────────────────────────────────
+
+const express = require('express');
+const sql = require('mssql');
+const cors = require('cors');
+const fetch = require('node-fetch');
+
+const app = express();
+app.use(cors());
+app.use(express.json());
+
+// ── Configuration ────────────────────────────────────────────
+const dbConfig = {
+  server: 'YOUR_SAP_B1_SQL_SERVER',   // e.g. 'sap-server\\B1'
+  database: 'YOUR_SAP_B1_DATABASE',    // e.g. 'SBODemoUS'
+  user: 'sa',
+  password: 'YOUR_PASSWORD',
+  options: {
+    encrypt: false,
+    trustServerCertificate: true,
+  },
+};
+
+const SL_CONFIG = {
+  baseUrl: 'https://YOUR_SAP_SERVER:50000/b1s/v1', // HTTPS Service Layer URL
+  companyDb: 'YOUR_SAP_B1_DATABASE',                // Same as dbConfig.database
+  username: 'manager',                               // SAP B1 user with PO access
+  password: 'YOUR_SL_PASSWORD',
+};
+
+// ── Service Layer Session Management ─────────────────────────
+let slSessionId = null;
+
+async function slLogin() {
+  const res = await fetch(`${SL_CONFIG.baseUrl}/Login`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      CompanyDB: SL_CONFIG.companyDb,
+      UserName: SL_CONFIG.username,
+      Password: SL_CONFIG.password,
+    }),
+    // Service Layer uses self-signed certs in most installations
+    ...(process.env.NODE_TLS_REJECT_UNAUTHORIZED === '0' ? {} : {}),
+  });
+
+  if (!res.ok) {
+    const text = await res.text();
+    throw new Error(`Service Layer login failed (${res.status}): ${text}`);
+  }
+
+  const data = await res.json();
+  slSessionId = data.SessionId;
+  console.log('Service Layer session established:', slSessionId);
+  return slSessionId;
+}
+
+async function slFetch(path, options = {}) {
+  if (!slSessionId) await slLogin();
+
+  const url = `${SL_CONFIG.baseUrl}${path}`;
+  const headers = {
+    'Content-Type': 'application/json',
+    Cookie: `B1SESSION=${slSessionId}`,
+    ...options.headers,
+  };
+
+  let res = await fetch(url, { ...options, headers });
+
+  // Session expired — re-login and retry once
+  if (res.status === 401) {
+    console.log('Session expired, re-authenticating...');
+    await slLogin();
+    headers.Cookie = `B1SESSION=${slSessionId}`;
+    res = await fetch(url, { ...options, headers });
+  }
+
+  return res;
+}
+
+// ── Routes ───────────────────────────────────────────────────
+
+// GET open POR1 rows (direct SQL — fast read)
+app.get('/api/por1/open-rows', async (req, res) => {
+  try {
+    const pool = await sql.connect(dbConfig);
+    const result = await pool.request().query(`
+      SELECT
+        T0.DocEntry, T0.LineNum, T1.DocNum,
+        T1.CardCode, T1.CardName,
+        T0.ItemCode, T0.Dscription,
+        T0.ShipDate, T0.OpenQty,
+        T0.Price, T0.LineTotal, T0.WhsCode
+      FROM POR1 T0
+      INNER JOIN OPOR T1 ON T1.DocEntry = T0.DocEntry
+      WHERE T1.DocStatus = 'O'
+        AND T0.LineStatus = 'O'
+        AND T0.OpenQty > 0
+      ORDER BY T1.DocNum, T0.LineNum
+    `);
+    res.json(result.recordset);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// POST update ShipDate via SAP Service Layer
+// Groups rows by DocEntry, then PATCHes each PurchaseOrder document
+app.post('/api/por1/update-shipdate', async (req, res) => {
+  const { rows, newDate, updatedBy } = req.body;
+
+  try {
+    // Group rows by DocEntry
+    const byDocEntry = {};
+    for (const row of rows) {
+      if (!byDocEntry[row.DocEntry]) byDocEntry[row.DocEntry] = [];
+      byDocEntry[row.DocEntry].push(row.LineNum);
+    }
+
+    const results = [];
+    const errors = [];
+
+    for (const [docEntry, lineNums] of Object.entries(byDocEntry)) {
+      try {
+        // First, GET the current document to know all lines
+        const getRes = await slFetch(`/PurchaseOrders(${docEntry})`);
+        if (!getRes.ok) {
+          const errText = await getRes.text();
+          errors.push({ docEntry, error: `GET failed (${getRes.status}): ${errText}` });
+          continue;
+        }
+
+        const doc = await getRes.json();
+
+        // Build the PATCH payload — only update ShipDate on selected lines
+        const documentLines = lineNums.map(lineNum => ({
+          LineNum: lineNum,
+          ShipDate: newDate,
+        }));
+
+        const patchBody = {
+          DocumentLines: documentLines,
+        };
+
+        // PATCH the purchase order — SAP will create ADO1/ADOC entries
+        const patchRes = await slFetch(`/PurchaseOrders(${docEntry})`, {
+          method: 'PATCH',
+          body: JSON.stringify(patchBody),
+        });
+
+        if (patchRes.ok || patchRes.status === 204) {
+          results.push({
+            docEntry: Number(docEntry),
+            linesUpdated: lineNums.length,
+            status: 'success',
+          });
+          console.log(`✓ DocEntry ${docEntry}: updated ${lineNums.length} line(s) to ${newDate}`);
+        } else {
+          const errText = await patchRes.text();
+          errors.push({ docEntry, error: `PATCH failed (${patchRes.status}): ${errText}` });
+          console.error(`✗ DocEntry ${docEntry}: ${errText}`);
+        }
+      } catch (docErr) {
+        errors.push({ docEntry, error: docErr.message });
+        console.error(`✗ DocEntry ${docEntry}: ${docErr.message}`);
+      }
+    }
+
+    const totalUpdated = results.reduce((sum, r) => sum + r.linesUpdated, 0);
+
+    res.json({
+      success: errors.length === 0,
+      affectedRows: totalUpdated,
+      details: results,
+      errors: errors.length > 0 ? errors : undefined,
+    });
+  } catch (err) {
+    console.error('Update error:', err.message);
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// Health check
+app.get('/api/health', (req, res) => {
+  res.json({
+    status: 'ok',
+    mode: 'service-layer',
+    slSession: slSessionId ? 'active' : 'none',
+  });
+});
+
+// ── Start ────────────────────────────────────────────────────
+
+// Allow self-signed certs for Service Layer
+process.env.NODE_TLS_REJECT_UNAUTHORIZED = '0';
+
+app.listen(3001, '0.0.0.0', () => {
+  console.log('POR1 proxy (SERVICE LAYER) running on http://0.0.0.0:3001');
+  console.log('Reads:  Direct MSSQL');
+  console.log('Writes: SAP Service Layer → ADO1/ADOC audit trail');
+  // Pre-authenticate with Service Layer
+  slLogin().catch(err => console.warn('Initial SL login failed (will retry on first request):', err.message));
+});
