@@ -1,11 +1,12 @@
 import { useState, useEffect, useMemo } from "react";
 import { POR1Row } from "@/types/por1";
 import { fetchOpenPOR1Rows, executeShipDateUpdate } from "@/lib/por1Api";
+import { addChangeLogEntry } from "@/lib/changeLog";
 import FilterBar from "@/components/FilterBar";
 import POR1Table from "@/components/POR1Table";
 import UpdatePanel from "@/components/UpdatePanel";
-import SQLReference from "@/components/SQLReference";
-import { Database, RefreshCw } from "lucide-react";
+import ChangeLogPanel from "@/components/ChangeLogPanel";
+import { RefreshCw } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
 
@@ -71,10 +72,24 @@ const Index = () => {
     .map((r) => ({ DocEntry: r.DocEntry, LineNum: r.LineNum }));
 
   const handleUpdate = async (newDate: string, updatedBy: string) => {
+    // Capture old dates before update
+    const affectedRows = rows
+      .filter((r) => selectedKeys.has(rowKey(r)))
+      .map((r) => ({ DocEntry: r.DocEntry, LineNum: r.LineNum, oldDate: r.ShipDate.split("T")[0] }));
+
     try {
       const result = await executeShipDateUpdate(selectedRows, newDate, updatedBy);
       if (result.success) {
-        // Update local state to reflect the change
+        // Log the change
+        addChangeLogEntry({
+          timestamp: new Date().toISOString(),
+          updatedBy,
+          newDate,
+          rowCount: affectedRows.length,
+          rows: affectedRows,
+        });
+
+        // Update local state
         setRows((prev) =>
           prev.map((r) =>
             selectedKeys.has(rowKey(r)) ? { ...r, ShipDate: newDate } : r
@@ -83,7 +98,7 @@ const Index = () => {
         setSelectedKeys(new Set());
         toast({
           title: "ShipDate Updated",
-          description: `${selectedRows.length} row(s) updated to ${newDate} (${result.affectedRows ?? 0} affected in DB)`,
+          description: `${selectedRows.length} row(s) updated to ${newDate}`,
         });
       } else {
         toast({ title: "Update Failed", description: "The database did not confirm the update.", variant: "destructive" });
@@ -96,24 +111,28 @@ const Index = () => {
   return (
     <div className="flex flex-col h-screen">
       {/* Header */}
-      <header className="flex items-center justify-between px-4 py-3 bg-table-header text-table-header-foreground border-b border-border">
-        <div className="flex items-center gap-3">
-          <Database className="h-5 w-5" />
+      <header className="flex items-center justify-between px-5 py-4 bg-primary text-primary-foreground border-b border-border">
+        <div className="flex items-center gap-4">
           <div>
-            <h1 className="text-base font-bold tracking-tight">POR1 ShipDate Updater</h1>
-            <p className="text-xs opacity-70">Batch update ship dates across open purchase order lines</p>
+            <h1 className="text-lg font-bold tracking-tight uppercase">
+              <span className="text-accent">TUUCI</span>
+              <span className="mx-2 opacity-30">|</span>
+              POR1 ShipDate Updater
+            </h1>
+            <p className="text-xs opacity-50 mt-0.5">Batch update ship dates across open purchase order lines</p>
           </div>
         </div>
         <div className="flex items-center gap-2">
-          <span className="text-xs font-mono opacity-60 hidden sm:inline">
-            MODE: MOCK DATA
+          <span className="text-xs font-mono opacity-40 hidden sm:inline uppercase tracking-wider">
+            Live
           </span>
+          <div className="w-2 h-2 rounded-full bg-success animate-pulse" />
           <Button
             size="sm"
             variant="ghost"
             onClick={loadData}
             disabled={loading}
-            className="text-table-header-foreground hover:bg-primary/20"
+            className="text-primary-foreground hover:bg-accent/20"
           >
             <RefreshCw className={`h-4 w-4 ${loading ? "animate-spin" : ""}`} />
           </Button>
@@ -152,8 +171,8 @@ const Index = () => {
         onClear={() => setSelectedKeys(new Set())}
       />
 
-      {/* SQL Reference */}
-      <SQLReference />
+      {/* Change Log */}
+      <ChangeLogPanel />
     </div>
   );
 };

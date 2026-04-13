@@ -17,3 +17,12 @@ export interface ApiConfig {
   mode: 'mock' | 'proxy' | 'serviceLayer';
   baseUrl: string;
 }
+
+export interface ShipDateChangeLog {
+  id?: number;
+  timestamp: string;
+  updatedBy: string;
+  newDate: string;
+  rowCount: number;
+  rows: { DocEntry: number; LineNum: number; oldDate: string }[];
+}
