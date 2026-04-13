@@ -2,7 +2,7 @@ import { POR1Row, ApiConfig } from "@/types/por1";
 import { MOCK_ROWS } from "@/data/mockPor1Data";
 
 const config: ApiConfig = {
-  mode: 'proxy',
+  mode: 'mock',
   baseUrl: 'http://10.1.0.88:3001',
 };
 
