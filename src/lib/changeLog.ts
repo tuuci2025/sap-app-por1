@@ -1,22 +1,37 @@
+import { supabase } from "@/integrations/supabase/client";
 import { ShipDateChangeLog } from "@/types/por1";
 
-const STORAGE_KEY = "por1_shipdate_changelog";
+export async function getChangeLog(): Promise<ShipDateChangeLog[]> {
+  const { data, error } = await supabase
+    .from("shipdate_changelog")
+    .select("*")
+    .order("created_at", { ascending: false })
+    .limit(100);
 
-export function getChangeLog(): ShipDateChangeLog[] {
-  try {
-    const data = localStorage.getItem(STORAGE_KEY);
-    return data ? JSON.parse(data) : [];
-  } catch {
+  if (error) {
+    console.error("Failed to fetch changelog:", error);
     return [];
   }
+
+  return (data || []).map((row: any) => ({
+    id: row.id,
+    timestamp: row.created_at,
+    updatedBy: row.updated_by,
+    newDate: row.new_date,
+    rowCount: row.row_count,
+    rows: row.affected_rows || [],
+  }));
 }
 
-export function addChangeLogEntry(entry: ShipDateChangeLog): void {
-  const log = getChangeLog();
-  log.unshift({ ...entry, id: Date.now() });
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(log));
-}
+export async function addChangeLogEntry(entry: ShipDateChangeLog): Promise<void> {
+  const { error } = await supabase.from("shipdate_changelog").insert({
+    updated_by: entry.updatedBy,
+    new_date: entry.newDate,
+    row_count: entry.rowCount,
+    affected_rows: entry.rows,
+  });
 
-export function clearChangeLog(): void {
-  localStorage.removeItem(STORAGE_KEY);
+  if (error) {
+    console.error("Failed to save changelog entry:", error);
+  }
 }
