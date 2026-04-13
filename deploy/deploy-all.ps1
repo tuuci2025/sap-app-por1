@@ -16,7 +16,7 @@ Write-Host "========================================`n" -ForegroundColor Cyan
 # ── 1. Pull latest frontend code ──
 Write-Host "[1/5] Pulling latest code from GitHub..." -ForegroundColor Yellow
 Set-Location $FrontendDir
-git pull origin main
+git pull origin main 2>&1 | ForEach-Object { Write-Host $_ }
 if ($LASTEXITCODE -ne 0) { Write-Host "ERROR: git pull failed" -ForegroundColor Red; exit 1 }
 Write-Host "  Done.`n" -ForegroundColor Green
 
