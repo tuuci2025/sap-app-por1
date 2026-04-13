@@ -2,7 +2,7 @@
 # Run from any location on the production server (10.1.0.88)
 # PowerShell: .\deploy\deploy-all.ps1
 
-$ErrorActionPreference = "Stop"
+$ErrorActionPreference = "Continue"
 
 $FrontendDir = "C:\Users\jborremans\Desktop\por1-frontend"
 $ProxyDir    = "C:\Users\jborremans\Desktop\POR1"
