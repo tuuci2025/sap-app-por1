@@ -14,7 +14,33 @@ export type Database = {
   }
   public: {
     Tables: {
-      [_ in never]: never
+      shipdate_changelog: {
+        Row: {
+          affected_rows: Json
+          created_at: string
+          id: string
+          new_date: string
+          row_count: number
+          updated_by: string
+        }
+        Insert: {
+          affected_rows?: Json
+          created_at?: string
+          id?: string
+          new_date: string
+          row_count: number
+          updated_by: string
+        }
+        Update: {
+          affected_rows?: Json
+          created_at?: string
+          id?: string
+          new_date?: string
+          row_count?: number
+          updated_by?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never

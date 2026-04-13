@@ -81,7 +81,7 @@ const Index = () => {
       const result = await executeShipDateUpdate(selectedRows, newDate, updatedBy);
       if (result.success) {
         // Log the change
-        addChangeLogEntry({
+        await addChangeLogEntry({
           timestamp: new Date().toISOString(),
           updatedBy,
           newDate,
