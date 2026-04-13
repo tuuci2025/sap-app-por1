@@ -34,6 +34,13 @@ Write-Host "  Done.`n" -ForegroundColor Green
 
 # ── 4. Restart proxy (port 3001) ──
 Write-Host "[4/5] Restarting Node.js proxy on port $ProxyPort..." -ForegroundColor Yellow
+# Install proxy dependencies (node-fetch needed for Service Layer mode)
+Set-Location $ProxyDir
+if (-not (Test-Path "$ProxyDir\node_modules\node-fetch")) {
+    Write-Host "  Installing proxy dependencies..."
+    npm install express mssql cors node-fetch@2
+}
+Set-Location $FrontendDir
 # Kill existing proxy process on port 3001
 $proxyPids = Get-NetTCPConnection -LocalPort $ProxyPort -ErrorAction SilentlyContinue | Select-Object -ExpandProperty OwningProcess -Unique
 foreach ($pid in $proxyPids) {
@@ -41,9 +48,10 @@ foreach ($pid in $proxyPids) {
     Stop-Process -Id $pid -Force -ErrorAction SilentlyContinue
 }
 Start-Sleep -Seconds 1
-# Start proxy in background
+# Start proxy in background (Service Layer mode)
+# To revert to direct SQL: replace server.js with server-direct-sql.js
 Start-Process -FilePath "node" -ArgumentList "$ProxyDir\server.js" -WindowStyle Hidden
-Write-Host "  Proxy started.`n" -ForegroundColor Green
+Write-Host "  Proxy started (Service Layer mode).`n" -ForegroundColor Green
 
 # ── 5. Restart frontend server (port 8082) ──
 Write-Host "[5/5] Restarting frontend server on port $FrontendPort..." -ForegroundColor Yellow
