@@ -114,12 +114,12 @@ const Index = () => {
       <header className="flex items-center justify-between px-5 py-4 bg-primary text-primary-foreground border-b border-border">
         <div className="flex items-center gap-4">
           <div>
-            <h1 className="text-lg font-bold tracking-tight uppercase mx-0">
+            <h1 className="text-lg font-bold tracking-normal uppercase mx-0">
               <span className="text-accent">TUUCI</span>
               <span className="mx-2 opacity-30">|</span>
-              POR1 ShipDate Updater
+              PO Delivery Date Mass Updater
             </h1>
-            <p className="text-xs opacity-50 mt-0.5">Batch update ship dates across open purchase order lines</p>
+            <p className="text-xs opacity-50 mt-0.5">Batch update delivery dates across open purchase order lines</p>
           </div>
         </div>
         <div className="flex items-center gap-2">
