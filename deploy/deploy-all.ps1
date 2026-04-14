@@ -43,9 +43,9 @@ if (-not (Test-Path "$ProxyDir\node_modules\node-fetch")) {
 Set-Location $FrontendDir
 # Kill existing proxy process on port 3001
 $proxyPids = Get-NetTCPConnection -LocalPort $ProxyPort -ErrorAction SilentlyContinue | Select-Object -ExpandProperty OwningProcess -Unique
-foreach ($pid in $proxyPids) {
-    Write-Host "  Stopping process $pid on port $ProxyPort"
-    Stop-Process -Id $pid -Force -ErrorAction SilentlyContinue
+foreach ($p in $proxyPids) {
+    Write-Host "  Stopping process $p on port $ProxyPort"
+    Stop-Process -Id $p -Force -ErrorAction SilentlyContinue
 }
 Start-Sleep -Seconds 1
 # Start proxy in background (Service Layer mode)
@@ -57,9 +57,9 @@ Write-Host "  Proxy started (Service Layer mode).`n" -ForegroundColor Green
 Write-Host "[5/5] Restarting frontend server on port $FrontendPort..." -ForegroundColor Yellow
 # Kill existing http-server on port 8082
 $frontendPids = Get-NetTCPConnection -LocalPort $FrontendPort -ErrorAction SilentlyContinue | Select-Object -ExpandProperty OwningProcess -Unique
-foreach ($pid in $frontendPids) {
-    Write-Host "  Stopping process $pid on port $FrontendPort"
-    Stop-Process -Id $pid -Force -ErrorAction SilentlyContinue
+foreach ($p in $frontendPids) {
+    Write-Host "  Stopping process $p on port $FrontendPort"
+    Stop-Process -Id $p -Force -ErrorAction SilentlyContinue
 }
 Start-Sleep -Seconds 1
 # Start frontend in background
