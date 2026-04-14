@@ -58,7 +58,7 @@ const UpdatePanel = ({ selectedCount, selectedRows, onUpdate, onClear }: UpdateP
           onClick={() => setShowSQL(true)}
           className="bg-primary text-primary-foreground hover:bg-primary/90"
         >
-          Update ShipDate
+          Update Delivery Date
         </Button>
 
         <Button size="sm" variant="ghost" onClick={onClear} className="text-muted-foreground">

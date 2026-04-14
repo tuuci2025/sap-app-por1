@@ -97,7 +97,7 @@ const Index = () => {
         );
         setSelectedKeys(new Set());
         toast({
-          title: "ShipDate Updated",
+          title: "Delivery Date Updated",
           description: `${selectedRows.length} row(s) updated to ${newDate}`,
         });
       } else {
@@ -151,7 +151,7 @@ const Index = () => {
       {loading ? (
         <div className="flex-1 flex items-center justify-center text-muted-foreground">
           <RefreshCw className="h-5 w-5 animate-spin mr-2" />
-          Loading POR1 data...
+          Loading data...
         </div>
       ) : (
         <POR1Table

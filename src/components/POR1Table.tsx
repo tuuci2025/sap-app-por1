@@ -148,7 +148,7 @@ const POR1Table = ({ rows, selectedKeys, onToggle, onToggleAll, allSelected }: P
               Open Qty<SortIcon col="OpenQty" /><ResizeHandle col="OpenQty" />
             </th>
             <th className={thClass} onClick={() => handleSort("ShipDate")}>
-              Ship Date<SortIcon col="ShipDate" /><ResizeHandle col="ShipDate" />
+              Delivery Date<SortIcon col="ShipDate" /><ResizeHandle col="ShipDate" />
             </th>
             <th className={thClass} onClick={() => handleSort("WhsCode")}>
               Whs<SortIcon col="WhsCode" /><ResizeHandle col="WhsCode" />
