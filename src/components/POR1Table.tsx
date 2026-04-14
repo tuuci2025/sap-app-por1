@@ -43,7 +43,8 @@ const POR1Table = ({ rows, selectedKeys, onToggle, onToggleAll, allSelected }: P
   const [sortKey, setSortKey] = useState<SortKey | null>(null);
   const [sortDir, setSortDir] = useState<SortDir>("asc");
   const [colWidths, setColWidths] = useState<Record<string, number>>(DEFAULT_WIDTHS);
-  const resizing = useRef<{ col: string; startX: number; startW: number } | null>(null);
+  const colWidthsRef = useRef(colWidths);
+  colWidthsRef.current = colWidths;
 
   const handleSort = (key: SortKey) => {
     if (sortKey === key) {
@@ -57,17 +58,16 @@ const POR1Table = ({ rows, selectedKeys, onToggle, onToggleAll, allSelected }: P
   const onMouseDown = useCallback((col: string, e: React.MouseEvent) => {
     e.preventDefault();
     e.stopPropagation();
-    resizing.current = { col, startX: e.clientX, startW: colWidths[col] };
+    const startX = e.clientX;
+    const startW = colWidthsRef.current[col];
 
     const onMouseMove = (ev: MouseEvent) => {
-      if (!resizing.current) return;
-      const diff = ev.clientX - resizing.current.startX;
-      const newW = Math.max(40, resizing.current.startW + diff);
-      setColWidths(prev => ({ ...prev, [resizing.current!.col]: newW }));
+      const diff = ev.clientX - startX;
+      const newW = Math.max(40, startW + diff);
+      setColWidths(prev => ({ ...prev, [col]: newW }));
     };
 
     const onMouseUp = () => {
-      resizing.current = null;
       document.removeEventListener("mousemove", onMouseMove);
       document.removeEventListener("mouseup", onMouseUp);
       document.body.style.cursor = "";
@@ -78,7 +78,7 @@ const POR1Table = ({ rows, selectedKeys, onToggle, onToggleAll, allSelected }: P
     document.body.style.userSelect = "none";
     document.addEventListener("mousemove", onMouseMove);
     document.addEventListener("mouseup", onMouseUp);
-  }, [colWidths]);
+  }, []);
 
   const sortedRows = [...rows].sort((a, b) => {
     if (!sortKey) return 0;
@@ -103,9 +103,11 @@ const POR1Table = ({ rows, selectedKeys, onToggle, onToggleAll, allSelected }: P
   const ResizeHandle = ({ col }: { col: string }) => (
     <div
       onMouseDown={(e) => onMouseDown(col, e)}
-      className="absolute right-0 top-0 h-full w-1.5 cursor-col-resize hover:bg-accent/60 active:bg-accent z-20"
+      className="absolute right-0 top-0 h-full w-3 cursor-col-resize z-20 group"
       style={{ touchAction: "none" }}
-    />
+    >
+      <div className="absolute right-0 top-0 h-full w-0.5 bg-transparent group-hover:bg-accent/60 group-active:bg-accent transition-colors" />
+    </div>
   );
 
   const tableWidth = Object.values(colWidths).reduce((a, b) => a + b, 0);
