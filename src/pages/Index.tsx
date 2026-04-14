@@ -117,7 +117,7 @@ const Index = () => {
             <h1 className="text-lg font-bold tracking-normal uppercase mx-0">
               <span className="text-accent">TUUCI</span>
               <span className="mx-2 opacity-30">|</span>
-              PO Delivery Date Mass Updater
+              Delivery Date Mass Updater
             </h1>
             <p className="text-xs opacity-50 mt-0.5">Batch update delivery dates across open purchase order lines</p>
           </div>
