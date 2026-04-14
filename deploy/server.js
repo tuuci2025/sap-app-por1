@@ -20,10 +20,10 @@ app.use(express.json());
 
 // ── Configuration ────────────────────────────────────────────
 const dbConfig = {
-  server: 'YOUR_SAP_B1_SQL_SERVER',   // e.g. 'sap-server\\B1'
-  database: 'YOUR_SAP_B1_DATABASE',    // e.g. 'SBODemoUS'
+  server: 'nltuupro01',
+  database: 'TUUCI_PRODUCTIE',
   user: 'sa',
-  password: 'YOUR_PASSWORD',
+  password: 'REPLACE_WITH_SA_PASSWORD',  // ← Replace with your SQL Server sa password
   options: {
     encrypt: false,
     trustServerCertificate: true,
@@ -31,10 +31,10 @@ const dbConfig = {
 };
 
 const SL_CONFIG = {
-  baseUrl: 'https://YOUR_SAP_SERVER:50000/b1s/v1', // HTTPS Service Layer URL
-  companyDb: 'YOUR_SAP_B1_DATABASE',                // Same as dbConfig.database
-  username: 'manager',                               // SAP B1 user with PO access
-  password: 'YOUR_SL_PASSWORD',
+  baseUrl: 'https://nltuupro01:50000/b1s/v1',
+  companyDb: 'TUUCI_PRODUCTIE',
+  username: 'manager',
+  password: '523jx',
 };
 
 // ── Service Layer Session Management ─────────────────────────
