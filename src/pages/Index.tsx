@@ -21,13 +21,18 @@ const Index = () => {
   const [selectedKeys, setSelectedKeys] = useState<Set<string>>(new Set());
   const { toast } = useToast();
 
+  const [error, setError] = useState<string | null>(null);
+
   const loadData = async () => {
     setLoading(true);
+    setError(null);
     try {
       const data = await fetchOpenPOR1Rows();
       setRows(data);
     } catch (err) {
-      toast({ title: "Error", description: "Failed to load POR1 data", variant: "destructive" });
+      const message = err instanceof Error ? err.message : "Unknown error";
+      setError(message);
+      toast({ title: "Connection Error", description: "Could not reach the internal proxy server.", variant: "destructive" });
     } finally {
       setLoading(false);
     }
@@ -152,6 +157,18 @@ const Index = () => {
         <div className="flex-1 flex items-center justify-center text-muted-foreground">
           <RefreshCw className="h-5 w-5 animate-spin mr-2" />
           Loading data...
+        </div>
+      ) : error ? (
+        <div className="flex-1 flex flex-col items-center justify-center gap-4 text-muted-foreground px-4">
+          <div className="text-center max-w-md">
+            <p className="text-lg font-semibold text-destructive mb-2">Connection Failed</p>
+            <p className="text-sm mb-1">Could not connect to the internal proxy server.</p>
+            <p className="text-xs font-mono bg-muted rounded px-3 py-2 mt-2 break-all">{error}</p>
+          </div>
+          <Button size="sm" variant="outline" onClick={loadData}>
+            <RefreshCw className="h-4 w-4 mr-2" />
+            Retry
+          </Button>
         </div>
       ) : (
         <POR1Table
