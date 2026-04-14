@@ -114,7 +114,7 @@ const Index = () => {
       <header className="flex items-center justify-between px-5 py-4 bg-primary text-primary-foreground border-b border-border">
         <div className="flex items-center gap-4">
           <div>
-            <h1 className="text-lg font-bold tracking-tight uppercase">
+            <h1 className="text-lg font-bold tracking-tight uppercase mx-0">
               <span className="text-accent">TUUCI</span>
               <span className="mx-2 opacity-30">|</span>
               POR1 ShipDate Updater
