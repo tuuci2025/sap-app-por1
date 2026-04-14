@@ -131,6 +131,10 @@ app.post('/api/por1/update-shipdate', async (req, res) => {
 
     for (const [docEntry, lineNums] of Object.entries(byDocEntry)) {
       try {
+        // Force a fresh Service Layer session for each document
+        // This ensures SAP creates a new change log instance per update
+        await slLogin();
+
         // First, GET the current document to know all lines
         const getRes = await slFetch(`/PurchaseOrders(${docEntry})`);
         if (!getRes.ok) {
