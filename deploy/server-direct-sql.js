@@ -18,10 +18,10 @@ app.use(cors());
 app.use(express.json());
 
 const dbConfig = {
-  server: 'YOUR_SAP_B1_SQL_SERVER',   // e.g. 'sap-server\\B1'
-  database: 'YOUR_SAP_B1_DATABASE',    // e.g. 'SBODemoUS'
+  server: 'nltuupro01',
+  database: 'TUUCI_PRODUCTIE',
   user: 'sa',
-  password: 'YOUR_PASSWORD',
+  password: 'Amista@8614',
   options: {
     encrypt: false,
     trustServerCertificate: true,
