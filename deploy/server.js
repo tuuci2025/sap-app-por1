@@ -141,15 +141,16 @@ app.post('/api/por1/update-shipdate', async (req, res) => {
 
         const doc = await getRes.json();
 
-        // Build the PATCH payload — only update ShipDate on selected lines
-        const documentLines = lineNums.map(lineNum => ({
-          LineNum: lineNum,
-          ShipDate: newDate,
-        }));
+        // Build full DocumentLines — update selected, pass others through
+        // Sending ALL lines triggers a proper ADOC change log instance in SAP
+        const documentLines = doc.DocumentLines.map(line => {
+          if (lineNums.includes(line.LineNum)) {
+            return { LineNum: line.LineNum, ShipDate: newDate };
+          }
+          return { LineNum: line.LineNum };
+        });
 
-        const patchBody = {
-          DocumentLines: documentLines,
-        };
+        const patchBody = { DocumentLines: documentLines };
 
         // PATCH the purchase order — SAP will create ADO1/ADOC entries
         const patchRes = await slFetch(`/PurchaseOrders(${docEntry})`, {
