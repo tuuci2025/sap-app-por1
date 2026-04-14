@@ -23,7 +23,7 @@ const dbConfig = {
   server: 'nltuupro01',
   database: 'TUUCI_PRODUCTIE',
   user: 'sa',
-  password: 'REPLACE_WITH_SA_PASSWORD',  // ← Replace with your SQL Server sa password
+  password: 'Amista@8614',
   options: {
     encrypt: false,
     trustServerCertificate: true,
