@@ -29,14 +29,14 @@ function getDateClass(dateStr: string): string {
 }
 
 const DEFAULT_WIDTHS: Record<string, number> = {
-  checkbox: 40,
-  DocNum: 90,
-  CardName: 180,
-  ItemCode: 160,
-  Dscription: 240,
-  OpenQty: 90,
-  ShipDate: 120,
-  WhsCode: 60,
+  checkbox: 36,
+  DocNum: 70,
+  CardName: 160,
+  ItemCode: 130,
+  Dscription: 200,
+  OpenQty: 75,
+  ShipDate: 100,
+  WhsCode: 50,
 };
 
 const POR1Table = ({ rows, selectedKeys, onToggle, onToggleAll, allSelected }: POR1TableProps) => {
@@ -114,7 +114,7 @@ const POR1Table = ({ rows, selectedKeys, onToggle, onToggleAll, allSelected }: P
 
   return (
     <div className="overflow-auto flex-1">
-      <table className="text-sm" style={{ minWidth: tableWidth, tableLayout: "fixed" }}>
+      <table className="w-full text-sm" style={{ tableLayout: "fixed" }}>
         <colgroup>
           <col style={{ width: colWidths.checkbox }} />
           <col style={{ width: colWidths.DocNum }} />
