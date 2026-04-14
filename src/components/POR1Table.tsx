@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useRef, useCallback } from "react";
 import { POR1Row } from "@/types/por1";
 import { Checkbox } from "@/components/ui/checkbox";
 import { ArrowUp, ArrowDown, ArrowUpDown } from "lucide-react";
@@ -28,9 +28,22 @@ function getDateClass(dateStr: string): string {
   return "text-success";
 }
 
+const DEFAULT_WIDTHS: Record<string, number> = {
+  checkbox: 40,
+  DocNum: 90,
+  CardName: 180,
+  ItemCode: 160,
+  Dscription: 240,
+  OpenQty: 90,
+  ShipDate: 120,
+  WhsCode: 60,
+};
+
 const POR1Table = ({ rows, selectedKeys, onToggle, onToggleAll, allSelected }: POR1TableProps) => {
   const [sortKey, setSortKey] = useState<SortKey | null>(null);
   const [sortDir, setSortDir] = useState<SortDir>("asc");
+  const [colWidths, setColWidths] = useState<Record<string, number>>(DEFAULT_WIDTHS);
+  const resizing = useRef<{ col: string; startX: number; startW: number } | null>(null);
 
   const handleSort = (key: SortKey) => {
     if (sortKey === key) {
@@ -40,6 +53,32 @@ const POR1Table = ({ rows, selectedKeys, onToggle, onToggleAll, allSelected }: P
       setSortDir("asc");
     }
   };
+
+  const onMouseDown = useCallback((col: string, e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    resizing.current = { col, startX: e.clientX, startW: colWidths[col] };
+
+    const onMouseMove = (ev: MouseEvent) => {
+      if (!resizing.current) return;
+      const diff = ev.clientX - resizing.current.startX;
+      const newW = Math.max(40, resizing.current.startW + diff);
+      setColWidths(prev => ({ ...prev, [resizing.current!.col]: newW }));
+    };
+
+    const onMouseUp = () => {
+      resizing.current = null;
+      document.removeEventListener("mousemove", onMouseMove);
+      document.removeEventListener("mouseup", onMouseUp);
+      document.body.style.cursor = "";
+      document.body.style.userSelect = "";
+    };
+
+    document.body.style.cursor = "col-resize";
+    document.body.style.userSelect = "none";
+    document.addEventListener("mousemove", onMouseMove);
+    document.addEventListener("mouseup", onMouseUp);
+  }, [colWidths]);
 
   const sortedRows = [...rows].sort((a, b) => {
     if (!sortKey) return 0;
@@ -59,27 +98,61 @@ const POR1Table = ({ rows, selectedKeys, onToggle, onToggleAll, allSelected }: P
       : <ArrowDown className="inline ml-1 h-3 w-3" />;
   };
 
-  const thClass = "px-3 py-2.5 text-left font-semibold text-xs uppercase tracking-wider cursor-pointer select-none hover:bg-muted/30 transition-colors";
+  const thClass = "relative px-3 py-2.5 text-left font-semibold text-xs uppercase tracking-wider cursor-pointer select-none hover:bg-muted/30 transition-colors";
+
+  const ResizeHandle = ({ col }: { col: string }) => (
+    <div
+      onMouseDown={(e) => onMouseDown(col, e)}
+      className="absolute right-0 top-0 h-full w-1.5 cursor-col-resize hover:bg-accent/60 active:bg-accent z-20"
+      style={{ touchAction: "none" }}
+    />
+  );
+
+  const tableWidth = Object.values(colWidths).reduce((a, b) => a + b, 0);
 
   return (
     <div className="overflow-auto flex-1">
-      <table className="w-full text-sm">
+      <table className="text-sm" style={{ minWidth: tableWidth, tableLayout: "fixed" }}>
+        <colgroup>
+          <col style={{ width: colWidths.checkbox }} />
+          <col style={{ width: colWidths.DocNum }} />
+          <col style={{ width: colWidths.CardName }} />
+          <col style={{ width: colWidths.ItemCode }} />
+          <col style={{ width: colWidths.Dscription }} />
+          <col style={{ width: colWidths.OpenQty }} />
+          <col style={{ width: colWidths.ShipDate }} />
+          <col style={{ width: colWidths.WhsCode }} />
+        </colgroup>
         <thead>
           <tr className="bg-table-header text-table-header-foreground sticky top-0 z-10">
-            <th className="px-3 py-2.5 w-10 text-center">
+            <th className="px-3 py-2.5 text-center" style={{ width: colWidths.checkbox }}>
               <Checkbox
                 checked={allSelected && rows.length > 0}
                 onCheckedChange={onToggleAll}
                 className="border-table-header-foreground data-[state=checked]:bg-primary data-[state=checked]:border-primary"
               />
             </th>
-            <th className={thClass} onClick={() => handleSort("DocNum")}>PO #<SortIcon col="DocNum" /></th>
-            <th className={thClass} onClick={() => handleSort("CardName")}>Vendor<SortIcon col="CardName" /></th>
-            <th className={thClass} onClick={() => handleSort("ItemCode")}>Item Code<SortIcon col="ItemCode" /></th>
-            <th className={thClass} onClick={() => handleSort("Dscription")}>Description<SortIcon col="Dscription" /></th>
-            <th className={`${thClass} text-right`} onClick={() => handleSort("OpenQty")}>Open Qty<SortIcon col="OpenQty" /></th>
-            <th className={thClass} onClick={() => handleSort("ShipDate")}>Ship Date<SortIcon col="ShipDate" /></th>
-            <th className={thClass} onClick={() => handleSort("WhsCode")}>Whs<SortIcon col="WhsCode" /></th>
+            <th className={thClass} onClick={() => handleSort("DocNum")}>
+              PO #<SortIcon col="DocNum" /><ResizeHandle col="DocNum" />
+            </th>
+            <th className={thClass} onClick={() => handleSort("CardName")}>
+              Vendor<SortIcon col="CardName" /><ResizeHandle col="CardName" />
+            </th>
+            <th className={thClass} onClick={() => handleSort("ItemCode")}>
+              Item Code<SortIcon col="ItemCode" /><ResizeHandle col="ItemCode" />
+            </th>
+            <th className={thClass} onClick={() => handleSort("Dscription")}>
+              Description<SortIcon col="Dscription" /><ResizeHandle col="Dscription" />
+            </th>
+            <th className={`${thClass} text-right`} onClick={() => handleSort("OpenQty")}>
+              Open Qty<SortIcon col="OpenQty" /><ResizeHandle col="OpenQty" />
+            </th>
+            <th className={thClass} onClick={() => handleSort("ShipDate")}>
+              Ship Date<SortIcon col="ShipDate" /><ResizeHandle col="ShipDate" />
+            </th>
+            <th className={thClass} onClick={() => handleSort("WhsCode")}>
+              Whs<SortIcon col="WhsCode" /><ResizeHandle col="WhsCode" />
+            </th>
           </tr>
         </thead>
         <tbody>
@@ -105,10 +178,10 @@ const POR1Table = ({ rows, selectedKeys, onToggle, onToggleAll, allSelected }: P
                     onClick={(e) => e.stopPropagation()}
                   />
                 </td>
-                <td className="px-3 py-2 font-mono font-medium">{row.DocNum}</td>
-                <td className="px-3 py-2 truncate max-w-[200px]" title={row.CardName}>{row.CardName}</td>
-                <td className="px-3 py-2 font-mono text-xs">{row.ItemCode}</td>
-                <td className="px-3 py-2 truncate max-w-[220px]" title={row.Dscription}>{row.Dscription}</td>
+                <td className="px-3 py-2 font-mono font-medium truncate">{row.DocNum}</td>
+                <td className="px-3 py-2 truncate" title={row.CardName}>{row.CardName}</td>
+                <td className="px-3 py-2 font-mono text-xs truncate">{row.ItemCode}</td>
+                <td className="px-3 py-2 truncate" title={row.Dscription}>{row.Dscription}</td>
                 <td className="px-3 py-2 text-right font-mono">{row.OpenQty.toLocaleString()}</td>
                 <td className={`px-3 py-2 font-mono text-xs ${getDateClass(row.ShipDate)}`}>{row.ShipDate}</td>
                 <td className="px-3 py-2 font-mono text-xs text-muted-foreground">{row.WhsCode}</td>
