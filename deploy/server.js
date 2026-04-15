@@ -147,15 +147,18 @@ app.post('/api/por1/update-field', async (req, res) => {
       byDocEntry[row.DocEntry].push(row.LineNum);
     }
 
+    // Login once before processing all documents
+    const slUser = sapPassword ? sapUserCode : undefined;
+    const slPass = sapPassword || undefined;
+    await slLogin(slUser, slPass);
+    const credentials = { username: slUser, password: slPass };
+
     const results = [];
     const errors = [];
 
     for (const [docEntry, lineNums] of Object.entries(byDocEntry)) {
       try {
-        // Login as the selected SAP user if password provided, otherwise fall back to manager
-        await slLogin(sapPassword ? sapUserCode : undefined, sapPassword || undefined);
-
-        const getRes = await slFetch(`/PurchaseOrders(${docEntry})`);
+        const getRes = await slFetch(`/PurchaseOrders(${docEntry})`, {}, credentials);
         if (!getRes.ok) {
           const errText = await getRes.text();
           errors.push({ docEntry, error: `GET failed (${getRes.status}): ${errText}` });
@@ -176,7 +179,7 @@ app.post('/api/por1/update-field', async (req, res) => {
         const patchRes = await slFetch(`/PurchaseOrders(${docEntry})`, {
           method: 'PATCH',
           body: JSON.stringify(patchBody),
-        });
+        }, credentials);
 
         if (patchRes.ok || patchRes.status === 204) {
           results.push({
