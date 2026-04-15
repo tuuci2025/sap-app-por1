@@ -134,6 +134,125 @@ function createServiceLayerSession() {
 
 const sharedServiceLayerSession = createServiceLayerSession();
 
+function normalizeLineNumbers(lineNums) {
+  return Array.from(
+    new Set(
+      lineNums
+        .map((lineNum) => Number(lineNum))
+        .filter((lineNum) => Number.isInteger(lineNum))
+    )
+  );
+}
+
+function valuesMatch(field, actualValue, expectedValue) {
+  if (field === 'ShipDate') {
+    return String(actualValue || '').split('T')[0] === String(expectedValue || '').split('T')[0];
+  }
+
+  const actualNumber = Number(actualValue);
+  const expectedNumber = Number(expectedValue);
+  return Number.isFinite(actualNumber)
+    && Number.isFinite(expectedNumber)
+    && Math.abs(actualNumber - expectedNumber) < 0.000001;
+}
+
+function buildDocumentLinesPatch(documentLines, targetLineNums, field, value, includeUntouchedLines) {
+  const targetSet = new Set(normalizeLineNumbers(targetLineNums));
+
+  return documentLines
+    .filter((line) => includeUntouchedLines || targetSet.has(Number(line.LineNum)))
+    .map((line) => {
+      if (targetSet.has(Number(line.LineNum))) {
+        return { LineNum: line.LineNum, [field]: value };
+      }
+      return { LineNum: line.LineNum };
+    });
+}
+
+function updatedLinesVerified(documentLines, targetLineNums, field, value) {
+  const targetSet = new Set(normalizeLineNumbers(targetLineNums));
+  const targetLines = documentLines.filter((line) => targetSet.has(Number(line.LineNum)));
+
+  return targetLines.length === targetSet.size
+    && targetLines.every((line) => valuesMatch(field, line[field], value));
+}
+
+async function getPurchaseOrder(session, docEntry, credentials) {
+  const response = await session.fetch(`/PurchaseOrders(${docEntry})`, {}, credentials);
+  if (!response.ok) {
+    const errorText = await response.text();
+    throw new Error(`GET failed (${response.status}): ${errorText}`);
+  }
+
+  const document = await response.json();
+  if (!Array.isArray(document.DocumentLines)) {
+    throw new Error('Purchase order payload did not include DocumentLines');
+  }
+
+  return document;
+}
+
+async function patchPurchaseOrder(session, docEntry, patchBody, credentials) {
+  const response = await session.fetch(`/PurchaseOrders(${docEntry})`, {
+    method: 'PATCH',
+    body: JSON.stringify(patchBody),
+  }, credentials);
+
+  if (!response.ok && response.status !== 204) {
+    const errorText = await response.text();
+    throw new Error(`PATCH failed (${response.status}): ${errorText}`);
+  }
+}
+
+async function updatePurchaseOrderField(docEntry, lineNums, slField, slValue, credentials) {
+  const normalizedLineNums = normalizeLineNumbers(lineNums);
+  if (normalizedLineNums.length === 0) {
+    throw new Error('No valid line numbers supplied for update');
+  }
+
+  const strategies = [
+    { name: 'full-document-lines', includeUntouchedLines: true },
+    { name: 'target-lines-only', includeUntouchedLines: false },
+  ];
+
+  let lastError = null;
+
+  for (const strategy of strategies) {
+    try {
+      const session = createServiceLayerSession();
+      await session.login(credentials.username, credentials.password);
+
+      const document = await getPurchaseOrder(session, docEntry, credentials);
+      const patchBody = {
+        DocumentLines: buildDocumentLinesPatch(
+          document.DocumentLines,
+          normalizedLineNums,
+          slField,
+          slValue,
+          strategy.includeUntouchedLines
+        ),
+      };
+
+      console.log(`→ PATCH DocEntry ${docEntry} (${strategy.name}):`, JSON.stringify(patchBody));
+
+      await patchPurchaseOrder(session, docEntry, patchBody, credentials);
+
+      const verifiedDocument = await getPurchaseOrder(session, docEntry, credentials);
+      if (!updatedLinesVerified(verifiedDocument.DocumentLines, normalizedLineNums, slField, slValue)) {
+        throw new Error(`Verification failed after ${strategy.name} patch`);
+      }
+
+      return { strategy: strategy.name };
+    } catch (error) {
+      lastError = error;
+      const message = error instanceof Error ? error.message : String(error);
+      console.warn(`Retrying DocEntry ${docEntry} after ${strategy.name} failed: ${message}`);
+    }
+  }
+
+  throw lastError instanceof Error ? lastError : new Error(String(lastError));
+}
+
 // ── Routes ───────────────────────────────────────────────────
 
 // GET open POR1 rows (direct SQL — fast read)
@@ -164,12 +283,10 @@ app.get('/api/por1/open-rows', async (req, res) => {
 app.post('/api/por1/update-field', async (req, res) => {
   const { rows, field, value, updatedBy, sapPassword } = req.body;
 
-  // Extract SAP user code from updatedBy format "Name (CODE)" or use as-is
   let sapUserCode = updatedBy;
   const codeMatch = updatedBy && updatedBy.match(/\(([^)]+)\)\s*$/);
   if (codeMatch) sapUserCode = codeMatch[1];
 
-  // Map frontend field names to SAP Service Layer property names
   const slFieldMap = {
     ShipDate: 'ShipDate',
     Price: 'UnitPrice',
@@ -181,7 +298,6 @@ app.post('/api/por1/update-field', async (req, res) => {
     return res.status(400).json({ error: `Unknown field: ${field}` });
   }
 
-  // Convert value to appropriate type
   const slValue = field === 'ShipDate' ? value : parseFloat(value);
 
   try {
@@ -200,53 +316,23 @@ app.post('/api/por1/update-field', async (req, res) => {
 
     for (const [docEntry, lineNums] of Object.entries(byDocEntry)) {
       try {
-        const session = createServiceLayerSession();
-        await session.login(slUser, slPass);
+        const { strategy } = await updatePurchaseOrderField(docEntry, lineNums, slField, slValue, credentials);
 
-        const getRes = await session.fetch(`/PurchaseOrders(${docEntry})`, {}, credentials);
-        if (!getRes.ok) {
-          const errText = await getRes.text();
-          errors.push({ docEntry, error: `GET failed (${getRes.status}): ${errText}` });
-          continue;
-        }
-
-        const doc = await getRes.json();
-
-        const documentLines = doc.DocumentLines.map(line => {
-          if (lineNums.includes(line.LineNum)) {
-            return { LineNum: line.LineNum, [slField]: slValue };
-          }
-          return { LineNum: line.LineNum };
+        results.push({
+          docEntry: Number(docEntry),
+          linesUpdated: normalizeLineNumbers(lineNums).length,
+          status: 'success',
+          strategy,
         });
-
-        const patchBody = { DocumentLines: documentLines };
-
-        console.log(`→ PATCH DocEntry ${docEntry}:`, JSON.stringify(patchBody));
-
-        const patchRes = await session.fetch(`/PurchaseOrders(${docEntry})`, {
-          method: 'PATCH',
-          body: JSON.stringify(patchBody),
-        }, credentials);
-
-        if (patchRes.ok || patchRes.status === 204) {
-          results.push({
-            docEntry: Number(docEntry),
-            linesUpdated: lineNums.length,
-            status: 'success',
-          });
-          console.log(`✓ DocEntry ${docEntry}: updated ${lineNums.length} line(s) ${field}=${value}`);
-        } else {
-          const errText = await patchRes.text();
-          errors.push({ docEntry, error: `PATCH failed (${patchRes.status}): ${errText}` });
-          console.error(`✗ DocEntry ${docEntry}: ${errText}`);
-        }
+        console.log(`✓ DocEntry ${docEntry}: updated ${lineNums.length} line(s) ${field}=${value} via ${strategy}`);
       } catch (docErr) {
-        errors.push({ docEntry, error: docErr.message });
-        console.error(`✗ DocEntry ${docEntry}: ${docErr.message}`);
+        const message = docErr instanceof Error ? docErr.message : String(docErr);
+        errors.push({ docEntry, error: message });
+        console.error(`✗ DocEntry ${docEntry}: ${message}`);
       }
     }
 
-    const totalUpdated = results.reduce((sum, r) => sum + r.linesUpdated, 0);
+    const totalUpdated = results.reduce((sum, result) => sum + result.linesUpdated, 0);
 
     res.json({
       success: errors.length === 0,
@@ -255,8 +341,9 @@ app.post('/api/por1/update-field', async (req, res) => {
       errors: errors.length > 0 ? errors : undefined,
     });
   } catch (err) {
-    console.error('Update error:', err.message);
-    res.status(500).json({ error: err.message });
+    const message = err instanceof Error ? err.message : String(err);
+    console.error('Update error:', message);
+    res.status(500).json({ error: message });
   }
 });
 
