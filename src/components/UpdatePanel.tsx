@@ -11,7 +11,7 @@ type UpdateField = "ShipDate" | "Price" | "LineTotal";
 interface UpdatePanelProps {
   selectedCount: number;
   selectedRows: { DocEntry: number; LineNum: number }[];
-  onUpdate: (field: UpdateField, value: string, updatedBy: string) => void;
+  onUpdate: (field: UpdateField, value: string, updatedBy: string, sapPassword: string) => void;
   onClear: () => void;
   sapUsers: SapUser[];
 }
@@ -22,6 +22,7 @@ const UpdatePanel = ({ selectedCount, selectedRows, onUpdate, onClear, sapUsers 
   const [newPrice, setNewPrice] = useState("");
   const [newLineTotal, setNewLineTotal] = useState("");
   const [updatedBy, setUpdatedBy] = useState("");
+  const [sapPassword, setSapPassword] = useState("");
   const [showSQL, setShowSQL] = useState(false);
   const [copied, setCopied] = useState(false);
 
@@ -85,6 +86,14 @@ const UpdatePanel = ({ selectedCount, selectedRows, onUpdate, onClear, sapUsers 
           </SelectContent>
         </Select>
 
+        <Input
+          type="password"
+          placeholder="SAP password"
+          value={sapPassword}
+          onChange={(e) => setSapPassword(e.target.value)}
+          className="w-40 h-9 text-sm"
+        />
+
         {activeField === "ShipDate" ? (
           <Input
             type="date"
@@ -106,7 +115,7 @@ const UpdatePanel = ({ selectedCount, selectedRows, onUpdate, onClear, sapUsers 
 
         <Button
           size="sm"
-          disabled={!currentValue || !updatedBy}
+          disabled={!currentValue || !updatedBy || !sapPassword}
           onClick={() => setShowSQL(true)}
           className="bg-primary text-primary-foreground hover:bg-primary/90"
         >
@@ -136,12 +145,13 @@ const UpdatePanel = ({ selectedCount, selectedRows, onUpdate, onClear, sapUsers 
             size="sm"
             className="mt-2 bg-success text-success-foreground hover:bg-success/90"
             onClick={() => {
-              onUpdate(activeField, currentValue, displayUpdatedBy);
+              onUpdate(activeField, currentValue, displayUpdatedBy, sapPassword);
               setShowSQL(false);
               if (activeField === "ShipDate") setNewDate("");
               else if (activeField === "Price") setNewPrice("");
               else setNewLineTotal("");
               setUpdatedBy("");
+              setSapPassword("");
             }}
           >
             Confirm & Apply
