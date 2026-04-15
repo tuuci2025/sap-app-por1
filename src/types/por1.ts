@@ -24,10 +24,10 @@ export interface ApiConfig {
 }
 
 export interface ShipDateChangeLog {
-  id?: number;
+  id?: string;
   timestamp: string;
   updatedBy: string;
   newDate: string;
   rowCount: number;
-  rows: { DocEntry: number; LineNum: number; oldDate: string }[];
+  rows: { DocEntry: number; LineNum: number; oldDate?: string }[];
 }

@@ -1,6 +1,14 @@
 import { supabase } from "@/integrations/supabase/client";
 import { ShipDateChangeLog } from "@/types/por1";
 
+export const CHANGE_LOG_UPDATED_EVENT = "por1-change-log-updated";
+
+function notifyChangeLogUpdated() {
+  if (typeof window !== "undefined") {
+    window.dispatchEvent(new Event(CHANGE_LOG_UPDATED_EVENT));
+  }
+}
+
 export async function getChangeLog(): Promise<ShipDateChangeLog[]> {
   const { data, error } = await supabase
     .from("shipdate_changelog")
@@ -23,7 +31,7 @@ export async function getChangeLog(): Promise<ShipDateChangeLog[]> {
   }));
 }
 
-export async function addChangeLogEntry(entry: ShipDateChangeLog): Promise<void> {
+export async function addChangeLogEntry(entry: ShipDateChangeLog): Promise<boolean> {
   const { error } = await supabase.from("shipdate_changelog").insert({
     updated_by: entry.updatedBy,
     new_date: entry.newDate,
@@ -33,5 +41,9 @@ export async function addChangeLogEntry(entry: ShipDateChangeLog): Promise<void>
 
   if (error) {
     console.error("Failed to save changelog entry:", error);
+    return false;
   }
+
+  notifyChangeLogUpdated();
+  return true;
 }
