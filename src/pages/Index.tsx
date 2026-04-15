@@ -1,7 +1,8 @@
 import { useState, useEffect, useMemo } from "react";
 import { POR1Row } from "@/types/por1";
-import { fetchOpenPOR1Rows, executeFieldUpdate } from "@/lib/por1Api";
+import { checkProxyHealth, executeFieldUpdate, fetchOpenPOR1Rows, getProxyBaseUrl } from "@/lib/por1Api";
 import { addChangeLogEntry } from "@/lib/changeLog";
+import ConnectionStatus from "@/components/ConnectionStatus";
 import FilterBar from "@/components/FilterBar";
 import POR1Table from "@/components/POR1Table";
 import UpdatePanel from "@/components/UpdatePanel";
@@ -14,6 +15,24 @@ function rowKey(r: POR1Row) {
   return `${r.DocEntry}-${r.LineNum}`;
 }
 
+type RuntimeStatus = "idle" | "checking" | "online" | "error";
+
+function getFriendlyError(message: string) {
+  if (message.includes('/api/health')) {
+    return 'The browser could not reach the proxy health endpoint.';
+  }
+
+  if (message.includes('/api/por1/open-rows')) {
+    return 'The proxy is reachable, but loading open purchase order rows failed.';
+  }
+
+  if (message.includes('/api/por1/update-field')) {
+    return 'The update request reached the proxy, but the field update failed.';
+  }
+
+  return 'Could not complete the request to the internal proxy server.';
+}
+
 const Index = () => {
   const [rows, setRows] = useState<POR1Row[]>([]);
   const [loading, setLoading] = useState(true);
@@ -22,17 +41,52 @@ const Index = () => {
   const { toast } = useToast();
 
   const [error, setError] = useState<string | null>(null);
+  const [proxyStatus, setProxyStatus] = useState<RuntimeStatus>("idle");
+  const [dataStatus, setDataStatus] = useState<RuntimeStatus>("idle");
+
+  const proxyBaseUrl = getProxyBaseUrl();
+  const isPreviewEnvironment = typeof window !== "undefined" && window.location.hostname.includes("lovable.app");
+
+  const syncStatusesFromError = (message: string) => {
+    if (message.includes('/api/health')) {
+      setProxyStatus("error");
+      setDataStatus("idle");
+      return;
+    }
+
+    if (message.includes('/api/por1/open-rows')) {
+      setProxyStatus("online");
+      setDataStatus("error");
+      return;
+    }
+
+    if (message.includes('/api/por1/update-field')) {
+      setDataStatus("error");
+      return;
+    }
+
+    setProxyStatus("error");
+    setDataStatus("error");
+  };
 
   const loadData = async () => {
     setLoading(true);
     setError(null);
+    setProxyStatus("checking");
+    setDataStatus("checking");
+
     try {
+      await checkProxyHealth();
+      setProxyStatus("online");
+
       const data = await fetchOpenPOR1Rows();
       setRows(data);
+      setDataStatus("online");
     } catch (err) {
       const message = err instanceof Error ? err.message : "Unknown error";
       setError(message);
-      toast({ title: "Connection Error", description: "Could not reach the internal proxy server.", variant: "destructive" });
+      syncStatusesFromError(message);
+      toast({ title: "Connection Error", description: getFriendlyError(message), variant: "destructive" });
     } finally {
       setLoading(false);
     }
@@ -84,6 +138,10 @@ const Index = () => {
     try {
       const result = await executeFieldUpdate(selectedRows, field, value, updatedBy);
       if (result.success) {
+        setError(null);
+        setProxyStatus("online");
+        setDataStatus("online");
+
         // Log the change
         await addChangeLogEntry({
           timestamp: new Date().toISOString(),
@@ -110,10 +168,14 @@ const Index = () => {
           description: `${selectedRows.length} row(s) updated to ${value}`,
         });
       } else {
+        setDataStatus("error");
         toast({ title: "Update Failed", description: "The server did not confirm the update.", variant: "destructive" });
       }
     } catch (err) {
-      toast({ title: "Error", description: `Update failed: ${err instanceof Error ? err.message : "Unknown error"}`, variant: "destructive" });
+      const message = err instanceof Error ? err.message : "Unknown error";
+      setError(message);
+      syncStatusesFromError(message);
+      toast({ title: "Error", description: `Update failed: ${getFriendlyError(message)}`, variant: "destructive" });
     }
   };
 
@@ -148,6 +210,14 @@ const Index = () => {
         </div>
       </header>
 
+      <ConnectionStatus
+        proxyBaseUrl={proxyBaseUrl}
+        proxyStatus={proxyStatus}
+        dataStatus={dataStatus}
+        error={error}
+        isPreviewEnvironment={isPreviewEnvironment}
+      />
+
       {/* Filters */}
       <FilterBar
         searchTerm={searchTerm}
@@ -166,7 +236,7 @@ const Index = () => {
         <div className="flex-1 flex flex-col items-center justify-center gap-4 text-muted-foreground px-4">
           <div className="text-center max-w-md">
             <p className="text-lg font-semibold text-destructive mb-2">Connection Failed</p>
-            <p className="text-sm mb-1">Could not connect to the internal proxy server.</p>
+            <p className="text-sm mb-1">{getFriendlyError(error)}</p>
             <p className="text-xs font-mono bg-muted rounded px-3 py-2 mt-2 break-all">{error}</p>
           </div>
           <Button size="sm" variant="outline" onClick={loadData}>
