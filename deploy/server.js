@@ -40,10 +40,35 @@ const SL_CONFIG = {
 // ── Service Layer Session Management ─────────────────────────
 let slSessionId = null;
 let slCurrentUser = null;
+let slCookies = {};
+
+function storeServiceLayerCookies(res) {
+  const rawCookies = res.headers?.raw?.()['set-cookie'] || [];
+
+  for (const cookie of rawCookies) {
+    const [nameValue] = cookie.split(';');
+    const separatorIndex = nameValue.indexOf('=');
+    if (separatorIndex === -1) continue;
+
+    const name = nameValue.slice(0, separatorIndex).trim();
+    const value = nameValue.slice(separatorIndex + 1).trim();
+    if (!name) continue;
+
+    slCookies[name] = value;
+  }
+}
+
+function getServiceLayerCookieHeader() {
+  return Object.entries(slCookies)
+    .map(([name, value]) => `${name}=${value}`)
+    .join('; ');
+}
 
 async function slLogin(username, password) {
   const user = username || SL_CONFIG.username;
   const pass = password || SL_CONFIG.password;
+
+  slCookies = {};
 
   const res = await fetch(`${SL_CONFIG.baseUrl}/Login`, {
     method: 'POST',
@@ -60,8 +85,10 @@ async function slLogin(username, password) {
     throw new Error(`Service Layer login failed for user '${user}' (${res.status}): ${text}`);
   }
 
+  storeServiceLayerCookies(res);
   const data = await res.json();
   slSessionId = data.SessionId;
+  slCookies.B1SESSION = data.SessionId;
   slCurrentUser = user;
   console.log(`Service Layer session established for '${user}':`, slSessionId);
   return slSessionId;
@@ -73,18 +100,20 @@ async function slFetch(path, options = {}, credentials = {}) {
   const url = `${SL_CONFIG.baseUrl}${path}`;
   const headers = {
     'Content-Type': 'application/json',
-    Cookie: `B1SESSION=${slSessionId}`,
+    Cookie: getServiceLayerCookieHeader(),
     ...options.headers,
   };
 
   let res = await fetch(url, { ...options, headers });
+  storeServiceLayerCookies(res);
 
   // Session expired — re-login with same credentials and retry once
   if (res.status === 401) {
     console.log('Session expired, re-authenticating...');
     await slLogin(credentials.username, credentials.password);
-    headers.Cookie = `B1SESSION=${slSessionId}`;
+    headers.Cookie = getServiceLayerCookieHeader();
     res = await fetch(url, { ...options, headers });
+    storeServiceLayerCookies(res);
   }
 
   return res;
