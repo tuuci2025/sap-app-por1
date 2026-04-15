@@ -109,7 +109,8 @@ export async function executeFieldUpdate(
   rows: { DocEntry: number; LineNum: number }[],
   field: 'ShipDate' | 'Price' | 'LineTotal',
   value: string,
-  updatedBy: string
+  updatedBy: string,
+  sapPassword?: string
 ): Promise<{ success: boolean; affectedRows?: number }> {
   if (config.mode === 'mock') {
     return { success: true, affectedRows: rows.length };
@@ -117,7 +118,7 @@ export async function executeFieldUpdate(
 
   return requestJson<{ success: boolean; affectedRows?: number }>('/api/por1/update-field', {
     method: 'POST',
-    body: JSON.stringify({ rows, field, value, updatedBy }),
+    body: JSON.stringify({ rows, field, value, updatedBy, sapPassword }),
   });
 }
 

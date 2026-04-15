@@ -135,13 +135,13 @@ const Index = () => {
     .filter((r) => selectedKeys.has(rowKey(r)))
     .map((r) => ({ DocEntry: r.DocEntry, LineNum: r.LineNum }));
 
-  const handleUpdate = async (field: 'ShipDate' | 'Price' | 'LineTotal', value: string, updatedBy: string) => {
+  const handleUpdate = async (field: 'ShipDate' | 'Price' | 'LineTotal', value: string, updatedBy: string, sapPassword?: string) => {
     const affectedRows = rows
       .filter((r) => selectedKeys.has(rowKey(r)))
       .map((r) => ({ DocEntry: r.DocEntry, LineNum: r.LineNum, oldDate: r.ShipDate.split("T")[0] }));
 
     try {
-      const result = await executeFieldUpdate(selectedRows, field, value, updatedBy);
+      const result = await executeFieldUpdate(selectedRows, field, value, updatedBy, sapPassword);
       if (result.success) {
         setError(null);
         setProxyStatus("online");

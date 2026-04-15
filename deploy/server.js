@@ -39,28 +39,31 @@ const SL_CONFIG = {
 
 // ── Service Layer Session Management ─────────────────────────
 let slSessionId = null;
+let slCurrentUser = null;
 
-async function slLogin() {
+async function slLogin(username, password) {
+  const user = username || SL_CONFIG.username;
+  const pass = password || SL_CONFIG.password;
+
   const res = await fetch(`${SL_CONFIG.baseUrl}/Login`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({
       CompanyDB: SL_CONFIG.companyDb,
-      UserName: SL_CONFIG.username,
-      Password: SL_CONFIG.password,
+      UserName: user,
+      Password: pass,
     }),
-    // Service Layer uses self-signed certs in most installations
-    ...(process.env.NODE_TLS_REJECT_UNAUTHORIZED === '0' ? {} : {}),
   });
 
   if (!res.ok) {
     const text = await res.text();
-    throw new Error(`Service Layer login failed (${res.status}): ${text}`);
+    throw new Error(`Service Layer login failed for user '${user}' (${res.status}): ${text}`);
   }
 
   const data = await res.json();
   slSessionId = data.SessionId;
-  console.log('Service Layer session established:', slSessionId);
+  slCurrentUser = user;
+  console.log(`Service Layer session established for '${user}':`, slSessionId);
   return slSessionId;
 }
 
@@ -115,7 +118,12 @@ app.get('/api/por1/open-rows', async (req, res) => {
 
 // POST update a field (ShipDate, Price, LineTotal) via SAP Service Layer
 app.post('/api/por1/update-field', async (req, res) => {
-  const { rows, field, value, updatedBy } = req.body;
+  const { rows, field, value, updatedBy, sapPassword } = req.body;
+
+  // Extract SAP user code from updatedBy format "Name (CODE)" or use as-is
+  let sapUserCode = updatedBy;
+  const codeMatch = updatedBy && updatedBy.match(/\(([^)]+)\)\s*$/);
+  if (codeMatch) sapUserCode = codeMatch[1];
 
   // Map frontend field names to SAP Service Layer property names
   const slFieldMap = {
@@ -144,7 +152,8 @@ app.post('/api/por1/update-field', async (req, res) => {
 
     for (const [docEntry, lineNums] of Object.entries(byDocEntry)) {
       try {
-        await slLogin();
+        // Login as the selected SAP user if password provided, otherwise fall back to manager
+        await slLogin(sapPassword ? sapUserCode : undefined, sapPassword || undefined);
 
         const getRes = await slFetch(`/PurchaseOrders(${docEntry})`);
         if (!getRes.ok) {
