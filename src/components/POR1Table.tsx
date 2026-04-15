@@ -39,6 +39,7 @@ const DEFAULT_WIDTHS: Record<string, number> = {
   LineTotal: 100,
   ShipDate: 100,
   WhsCode: 50,
+  BlockNum: 90,
 };
 
 const POR1Table = ({ rows, selectedKeys, onToggle, onToggleAll, allSelected }: POR1TableProps) => {
@@ -128,6 +129,7 @@ const POR1Table = ({ rows, selectedKeys, onToggle, onToggleAll, allSelected }: P
           <col style={{ width: colWidths.LineTotal }} />
           <col style={{ width: colWidths.ShipDate }} />
           <col style={{ width: colWidths.WhsCode }} />
+          <col style={{ width: colWidths.BlockNum }} />
         </colgroup>
         <thead>
           <tr className="bg-table-header text-table-header-foreground sticky top-0 z-10">
@@ -165,6 +167,9 @@ const POR1Table = ({ rows, selectedKeys, onToggle, onToggleAll, allSelected }: P
             <th className={thClass} onClick={() => handleSort("WhsCode")}>
               Whs<SortIcon col="WhsCode" /><ResizeHandle col="WhsCode" />
             </th>
+            <th className={thClass} onClick={() => handleSort("BlockNum")}>
+              Sales Order<SortIcon col="BlockNum" /><ResizeHandle col="BlockNum" />
+            </th>
           </tr>
         </thead>
         <tbody>
@@ -199,12 +204,13 @@ const POR1Table = ({ rows, selectedKeys, onToggle, onToggleAll, allSelected }: P
                 <td className="px-3 py-2 text-right font-mono">{row.LineTotal.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
                 <td className={`px-3 py-2 font-mono text-xs ${getDateClass(row.ShipDate)}`}>{row.ShipDate}</td>
                 <td className="px-3 py-2 font-mono text-xs text-muted-foreground">{row.WhsCode}</td>
+                <td className="px-3 py-2 font-mono text-xs truncate" title={row.BlockNum}>{row.BlockNum}</td>
               </tr>
             );
           })}
           {rows.length === 0 && (
             <tr>
-              <td colSpan={10} className="px-3 py-12 text-center text-muted-foreground">
+              <td colSpan={11} className="px-3 py-12 text-center text-muted-foreground">
                 No open POR1 rows found matching your filter.
               </td>
             </tr>
