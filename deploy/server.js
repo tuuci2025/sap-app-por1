@@ -128,7 +128,7 @@ app.post('/api/por1/update-field', async (req, res) => {
   // Map frontend field names to SAP Service Layer property names
   const slFieldMap = {
     ShipDate: 'ShipDate',
-    Price: 'UnitPrice',
+    Price: 'Price',
     LineTotal: 'LineTotal',
   };
 
