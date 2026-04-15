@@ -21,29 +21,23 @@ export async function fetchOpenPOR1Rows(): Promise<POR1Row[]> {
   return response.json();
 }
 
-export async function executeShipDateUpdate(
+export async function executeFieldUpdate(
   rows: { DocEntry: number; LineNum: number }[],
-  newDate: string,
+  field: 'ShipDate' | 'Price' | 'LineTotal',
+  value: string,
   updatedBy: string
-): Promise<{ success: boolean; sql: string; affectedRows?: number }> {
-  const pairs = rows.map(r => `(${r.DocEntry}, ${r.LineNum})`).join(",\n    ");
-  const sql = `UPDATE POR1\nSET ShipDate = '${newDate}'\nWHERE (DocEntry, LineNum) IN (\n    ${pairs}\n)\nAND LineStatus = 'O';`;
-
+): Promise<{ success: boolean; affectedRows?: number }> {
   if (config.mode === 'mock') {
-    return { success: true, sql, affectedRows: rows.length };
+    return { success: true, affectedRows: rows.length };
   }
 
-  // Real proxy mode — sends SQL to your backend
-  const response = await fetch(`${config.baseUrl}/api/por1/update-shipdate`, {
+  const response = await fetch(`${config.baseUrl}/api/por1/update-field`, {
     method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-    },
-    body: JSON.stringify({ rows, newDate, updatedBy }),
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ rows, field, value, updatedBy }),
   });
   if (!response.ok) throw new Error(`Update failed: ${response.statusText}`);
-  const data = await response.json();
-  return { ...data, sql };
+  return response.json();
 }
 
 export function generateSelectSQL(): string {
@@ -70,17 +64,20 @@ ORDER BY T1.DocNum, T0.LineNum;`;
 
 export function generateUpdateSQL(
   rows: { DocEntry: number; LineNum: number }[],
-  newDate: string
+  field: 'ShipDate' | 'Price' | 'LineTotal',
+  value: string
 ): string {
   if (rows.length === 0) return "-- No rows selected";
   const pairs = rows.map(r => `(${r.DocEntry}, ${r.LineNum})`).join(",\n    ");
-  return `-- Update ShipDate for ${rows.length} selected POR1 row(s)
+  const sqlValue = field === 'ShipDate' ? `'${value}'` : value;
+  const columnName = field === 'LineTotal' ? 'LineTotal' : field;
+  return `-- Update ${columnName} for ${rows.length} selected POR1 row(s)
 -- Run a SELECT first to verify:
--- SELECT DocEntry, LineNum, ItemCode, ShipDate FROM POR1
+-- SELECT DocEntry, LineNum, ItemCode, ${columnName} FROM POR1
 -- WHERE (DocEntry, LineNum) IN (${pairs.replace(/\n\s*/g, " ")})
 
 UPDATE POR1
-SET ShipDate = '${newDate}'
+SET ${columnName} = ${sqlValue}
 WHERE (DocEntry, LineNum) IN (
     ${pairs}
 )
