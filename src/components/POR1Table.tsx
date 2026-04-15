@@ -3,7 +3,7 @@ import { POR1Row } from "@/types/por1";
 import { Checkbox } from "@/components/ui/checkbox";
 import { ArrowUp, ArrowDown, ArrowUpDown } from "lucide-react";
 
-type SortKey = "DocNum" | "CardName" | "ItemCode" | "Dscription" | "OpenQty" | "Price" | "LineTotal" | "ShipDate" | "WhsCode";
+type SortKey = "DocNum" | "CardName" | "ItemCode" | "Dscription" | "OpenQty" | "Price" | "LineTotal" | "ShipDate" | "WhsCode" | "BlockNum";
 type SortDir = "asc" | "desc";
 
 interface POR1TableProps {
