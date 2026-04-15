@@ -1,6 +1,6 @@
 import { useState, useEffect, useMemo } from "react";
 import { POR1Row } from "@/types/por1";
-import { fetchOpenPOR1Rows, executeShipDateUpdate } from "@/lib/por1Api";
+import { fetchOpenPOR1Rows, executeFieldUpdate } from "@/lib/por1Api";
 import { addChangeLogEntry } from "@/lib/changeLog";
 import FilterBar from "@/components/FilterBar";
 import POR1Table from "@/components/POR1Table";
@@ -76,37 +76,41 @@ const Index = () => {
     .filter((r) => selectedKeys.has(rowKey(r)))
     .map((r) => ({ DocEntry: r.DocEntry, LineNum: r.LineNum }));
 
-  const handleUpdate = async (newDate: string, updatedBy: string) => {
-    // Capture old dates before update
+  const handleUpdate = async (field: 'ShipDate' | 'Price' | 'LineTotal', value: string, updatedBy: string) => {
     const affectedRows = rows
       .filter((r) => selectedKeys.has(rowKey(r)))
       .map((r) => ({ DocEntry: r.DocEntry, LineNum: r.LineNum, oldDate: r.ShipDate.split("T")[0] }));
 
     try {
-      const result = await executeShipDateUpdate(selectedRows, newDate, updatedBy);
+      const result = await executeFieldUpdate(selectedRows, field, value, updatedBy);
       if (result.success) {
         // Log the change
         await addChangeLogEntry({
           timestamp: new Date().toISOString(),
           updatedBy,
-          newDate,
+          newDate: `${field}=${value}`,
           rowCount: affectedRows.length,
           rows: affectedRows,
         });
 
         // Update local state
         setRows((prev) =>
-          prev.map((r) =>
-            selectedKeys.has(rowKey(r)) ? { ...r, ShipDate: newDate } : r
-          )
+          prev.map((r) => {
+            if (!selectedKeys.has(rowKey(r))) return r;
+            if (field === 'ShipDate') return { ...r, ShipDate: value };
+            if (field === 'Price') return { ...r, Price: parseFloat(value) };
+            if (field === 'LineTotal') return { ...r, LineTotal: parseFloat(value) };
+            return r;
+          })
         );
         setSelectedKeys(new Set());
+        const fieldLabel = field === 'ShipDate' ? 'Delivery Date' : field === 'Price' ? 'Unit Price' : 'Total LC';
         toast({
-          title: "Delivery Date Updated",
-          description: `${selectedRows.length} row(s) updated to ${newDate}`,
+          title: `${fieldLabel} Updated`,
+          description: `${selectedRows.length} row(s) updated to ${value}`,
         });
       } else {
-        toast({ title: "Update Failed", description: "The database did not confirm the update.", variant: "destructive" });
+        toast({ title: "Update Failed", description: "The server did not confirm the update.", variant: "destructive" });
       }
     } catch (err) {
       toast({ title: "Error", description: `Update failed: ${err instanceof Error ? err.message : "Unknown error"}`, variant: "destructive" });

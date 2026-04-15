@@ -113,13 +113,26 @@ app.get('/api/por1/open-rows', async (req, res) => {
   }
 });
 
-// POST update ShipDate via SAP Service Layer
-// Groups rows by DocEntry, then PATCHes each PurchaseOrder document
-app.post('/api/por1/update-shipdate', async (req, res) => {
-  const { rows, newDate, updatedBy } = req.body;
+// POST update a field (ShipDate, Price, LineTotal) via SAP Service Layer
+app.post('/api/por1/update-field', async (req, res) => {
+  const { rows, field, value, updatedBy } = req.body;
+
+  // Map frontend field names to SAP Service Layer property names
+  const slFieldMap = {
+    ShipDate: 'ShipDate',
+    Price: 'UnitPrice',
+    LineTotal: 'LineTotal',
+  };
+
+  const slField = slFieldMap[field];
+  if (!slField) {
+    return res.status(400).json({ error: `Unknown field: ${field}` });
+  }
+
+  // Convert value to appropriate type
+  const slValue = field === 'ShipDate' ? value : parseFloat(value);
 
   try {
-    // Group rows by DocEntry
     const byDocEntry = {};
     for (const row of rows) {
       if (!byDocEntry[row.DocEntry]) byDocEntry[row.DocEntry] = [];
@@ -131,11 +144,8 @@ app.post('/api/por1/update-shipdate', async (req, res) => {
 
     for (const [docEntry, lineNums] of Object.entries(byDocEntry)) {
       try {
-        // Force a fresh Service Layer session for each document
-        // This ensures SAP creates a new change log instance per update
         await slLogin();
 
-        // First, GET the current document to know all lines
         const getRes = await slFetch(`/PurchaseOrders(${docEntry})`);
         if (!getRes.ok) {
           const errText = await getRes.text();
@@ -145,18 +155,15 @@ app.post('/api/por1/update-shipdate', async (req, res) => {
 
         const doc = await getRes.json();
 
-        // Build full DocumentLines — update selected, pass others through
-        // Sending ALL lines triggers a proper ADOC change log instance in SAP
         const documentLines = doc.DocumentLines.map(line => {
           if (lineNums.includes(line.LineNum)) {
-            return { LineNum: line.LineNum, ShipDate: newDate };
+            return { LineNum: line.LineNum, [slField]: slValue };
           }
           return { LineNum: line.LineNum };
         });
 
         const patchBody = { DocumentLines: documentLines };
 
-        // PATCH the purchase order — SAP will create ADO1/ADOC entries
         const patchRes = await slFetch(`/PurchaseOrders(${docEntry})`, {
           method: 'PATCH',
           body: JSON.stringify(patchBody),
@@ -168,7 +175,7 @@ app.post('/api/por1/update-shipdate', async (req, res) => {
             linesUpdated: lineNums.length,
             status: 'success',
           });
-          console.log(`✓ DocEntry ${docEntry}: updated ${lineNums.length} line(s) to ${newDate}`);
+          console.log(`✓ DocEntry ${docEntry}: updated ${lineNums.length} line(s) ${field}=${value}`);
         } else {
           const errText = await patchRes.text();
           errors.push({ docEntry, error: `PATCH failed (${patchRes.status}): ${errText}` });
@@ -192,6 +199,14 @@ app.post('/api/por1/update-shipdate', async (req, res) => {
     console.error('Update error:', err.message);
     res.status(500).json({ error: err.message });
   }
+});
+
+// Keep old endpoint for backward compat
+app.post('/api/por1/update-shipdate', async (req, res) => {
+  const { rows, newDate, updatedBy } = req.body;
+  // Redirect to new handler
+  req.body = { rows, field: 'ShipDate', value: newDate, updatedBy };
+  return res.redirect(307, '/api/por1/update-field');
 });
 
 // Health check
