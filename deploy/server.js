@@ -255,6 +255,6 @@ app.listen(3001, '0.0.0.0', () => {
   console.log('POR1 proxy (SERVICE LAYER) running on http://0.0.0.0:3001');
   console.log('Reads:  Direct MSSQL');
   console.log('Writes: SAP Service Layer → ADO1/ADOC audit trail');
-  // Pre-authenticate with Service Layer
+  // Pre-authenticate with Service Layer (as manager for health/read operations)
   slLogin().catch(err => console.warn('Initial SL login failed (will retry on first request):', err.message));
 });
