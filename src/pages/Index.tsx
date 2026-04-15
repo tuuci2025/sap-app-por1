@@ -1,6 +1,6 @@
 import { useState, useEffect, useMemo } from "react";
-import { POR1Row } from "@/types/por1";
-import { checkProxyHealth, executeFieldUpdate, fetchOpenPOR1Rows, getProxyBaseUrl } from "@/lib/por1Api";
+import { POR1Row, SapUser } from "@/types/por1";
+import { checkProxyHealth, executeFieldUpdate, fetchOpenPOR1Rows, fetchSapUsers, getProxyBaseUrl } from "@/lib/por1Api";
 import { addChangeLogEntry } from "@/lib/changeLog";
 import ConnectionStatus from "@/components/ConnectionStatus";
 import FilterBar from "@/components/FilterBar";
@@ -35,6 +35,7 @@ function getFriendlyError(message: string) {
 
 const Index = () => {
   const [rows, setRows] = useState<POR1Row[]>([]);
+  const [sapUsers, setSapUsers] = useState<SapUser[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedKeys, setSelectedKeys] = useState<Set<string>>(new Set());
@@ -79,8 +80,12 @@ const Index = () => {
       await checkProxyHealth();
       setProxyStatus("online");
 
-      const data = await fetchOpenPOR1Rows();
+      const [data, users] = await Promise.all([
+        fetchOpenPOR1Rows(),
+        fetchSapUsers().catch(() => []),
+      ]);
       setRows(data);
+      setSapUsers(users);
       setDataStatus("online");
     } catch (err) {
       const message = err instanceof Error ? err.message : "Unknown error";
@@ -260,6 +265,7 @@ const Index = () => {
         selectedRows={selectedRows}
         onUpdate={handleUpdate}
         onClear={() => setSelectedKeys(new Set())}
+        sapUsers={sapUsers}
       />
 
       {/* Change Log */}

@@ -86,6 +86,17 @@ export async function fetchOpenPOR1Rows(): Promise<POR1Row[]> {
   return requestJson<POR1Row[]>('/api/por1/open-rows');
 }
 
+export async function fetchSapUsers(): Promise<SapUser[]> {
+  if (config.mode === 'mock') {
+    return [
+      { code: 'manager', name: 'Manager' },
+      { code: 'jborremans', name: 'Jan Borremans' },
+    ];
+  }
+
+  return requestJson<SapUser[]>('/api/sap-users');
+}
+
 export async function checkProxyHealth(): Promise<ProxyHealthResponse> {
   if (config.mode === 'mock') {
     return { status: 'ok', mode: 'mock', slSession: 'mock' };
