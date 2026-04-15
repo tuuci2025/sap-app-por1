@@ -158,6 +158,9 @@ app.post('/api/por1/update-field', async (req, res) => {
 
     for (const [docEntry, lineNums] of Object.entries(byDocEntry)) {
       try {
+        // Re-authenticate before each document to ensure a fresh session
+        await slLogin(slUser, slPass);
+
         const getRes = await slFetch(`/PurchaseOrders(${docEntry})`, {}, credentials);
         if (!getRes.ok) {
           const errText = await getRes.text();
