@@ -1,48 +1,40 @@
 
-Current finding:
-- The proxy is up. Your `node server.js` output shows:
-  - `POR1 proxy (SERVICE LAYER) running on http://0.0.0.0:3001`
-  - `Service Layer session established ...`
-- The TLS warning is expected in this setup because the proxy intentionally allows the SAP self-signed certificate.
-- From the code I inspected, the new fields are already wired in:
-  - table columns: `Unit Price` and `Total LC`
-  - mass-update panel: `Delivery Date`, `Unit Price`, `Total LC`
-- The frontend is hardcoded to call `http://10.1.0.88:3001` (`src/lib/por1Api.ts`), and the exact error message you saw is shown whenever the fetch to the proxy fails (`src/pages/Index.tsx`).
 
-Plan to resolve this:
-1. Restore both runtime services
-   - Make sure the frontend web server on port `8082` is running as well as the proxy on `3001`.
-   - Right now the strongest clue is your earlier answer that the frontend status was “Not sure”. The proxy alone is not enough.
+## Understanding the constraint
 
-2. Verify the failing hop
-   - Check whether the app page itself is reachable at `http://10.1.0.88:8082`.
-   - Then check whether the browser can reach the proxy endpoints from the same internal machine:
-     - `/api/health`
-     - `/api/por1/open-rows`
-   - This will tell us whether the issue is:
-     - frontend not running,
-     - proxy not reachable from the browser,
-     - or data fetch failing behind the proxy.
+SAP Service Layer records whichever username was used to create the session (currently always `manager`). To make SAP's own history (ADO1/ADOC) show a different user, the proxy would need to log in **as that user**, which requires their password. Since users should not enter SAP passwords in the app, the SAP-internal audit trail will continue to show `manager`.
 
-3. If you want me to harden the app after approval, I would implement:
-   - configurable API base URL instead of hardcoded `10.1.0.88:3001`
-   - a visible health indicator in the UI for:
-     - app loaded
-     - proxy reachable
-     - data query successful
-   - clearer error text showing which endpoint failed
+However, we can still make the **app's own Change Log** (and the free-text field) show the correct SAP user by replacing the manual "Your name" text box with a dropdown populated from SAP's user table.
 
-4. Deployment cleanup I’d make after approval
-   - unify startup/deploy flow so the frontend and proxy are started consistently
-   - reduce the current “multiple PowerShell windows” confusion with one documented process
+## What changes
 
-Technical details:
-- Files inspected:
-  - `src/lib/por1Api.ts`
-  - `src/pages/Index.tsx`
-  - `src/components/POR1Table.tsx`
-  - `src/components/UpdatePanel.tsx`
-  - `src/types/por1.ts`
-- Likely conclusion:
-  - this does not look like a missing-feature/code regression
-  - it looks like a runtime/deployment connectivity issue between the browser, port `8082`, and port `3001`
+1. **New proxy endpoint: `GET /api/sap-users`**
+   - Query MSSQL table `OUSR` for active SAP users (`SELECT USER_CODE, U_NAME FROM OUSR WHERE LOCKED = 'N'`)
+   - Return `[{ code: "jborremans", name: "Jan Borremans" }, ...]`
+
+2. **New frontend API function: `fetchSapUsers()`**
+   - Calls the new endpoint via the existing `requestJson` helper
+
+3. **Replace free-text "Your name" with a dropdown**
+   - In `UpdatePanel.tsx`, swap the `<Input>` for a `<Select>` populated on mount
+   - Display format: `Name (USER_CODE)` so users can identify themselves
+   - Store the selected user code as `updatedBy`
+
+4. **Load users on app start**
+   - Fetch the user list in `Index.tsx` alongside the POR1 data
+   - Pass it down to `UpdatePanel`
+
+## SAP audit trail note
+
+If in the future you want SAP history itself to show the real user, we would need to store each SAP user's Service Layer password securely and log in as them per update. That's a separate, larger change. For now, the app's changelog will correctly attribute changes to the selected SAP user.
+
+## Files modified
+
+| File | Change |
+|------|--------|
+| `deploy/server.js` | Add `GET /api/sap-users` route querying OUSR |
+| `src/lib/por1Api.ts` | Add `fetchSapUsers()` function |
+| `src/types/por1.ts` | Add `SapUser` interface |
+| `src/components/UpdatePanel.tsx` | Replace text input with user dropdown |
+| `src/pages/Index.tsx` | Fetch SAP users on load, pass to UpdatePanel |
+
