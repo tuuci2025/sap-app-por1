@@ -1,8 +1,10 @@
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { CalendarDays, DollarSign, Copy, Check, X } from "lucide-react";
 import { generateUpdateSQL } from "@/lib/por1Api";
+import { SapUser } from "@/types/por1";
 
 type UpdateField = "ShipDate" | "Price" | "LineTotal";
 
@@ -11,9 +13,10 @@ interface UpdatePanelProps {
   selectedRows: { DocEntry: number; LineNum: number }[];
   onUpdate: (field: UpdateField, value: string, updatedBy: string) => void;
   onClear: () => void;
+  sapUsers: SapUser[];
 }
 
-const UpdatePanel = ({ selectedCount, selectedRows, onUpdate, onClear }: UpdatePanelProps) => {
+const UpdatePanel = ({ selectedCount, selectedRows, onUpdate, onClear, sapUsers }: UpdatePanelProps) => {
   const [activeField, setActiveField] = useState<UpdateField>("ShipDate");
   const [newDate, setNewDate] = useState("");
   const [newPrice, setNewPrice] = useState("");
@@ -34,6 +37,9 @@ const UpdatePanel = ({ selectedCount, selectedRows, onUpdate, onClear }: UpdateP
   };
 
   const fieldLabel = activeField === "ShipDate" ? "Delivery Date" : activeField === "Price" ? "Unit Price" : "Total LC";
+
+  const selectedUser = sapUsers.find(u => u.code === updatedBy);
+  const displayUpdatedBy = selectedUser ? `${selectedUser.name} (${selectedUser.code})` : updatedBy;
 
   return (
     <div className="border-t border-border bg-card px-4 py-3 animate-fade-in">
@@ -66,13 +72,18 @@ const UpdatePanel = ({ selectedCount, selectedRows, onUpdate, onClear }: UpdateP
           ))}
         </div>
 
-        <Input
-          type="text"
-          placeholder="Your name"
-          value={updatedBy}
-          onChange={(e) => setUpdatedBy(e.target.value)}
-          className="w-36 h-9 text-sm"
-        />
+        <Select value={updatedBy} onValueChange={setUpdatedBy}>
+          <SelectTrigger className="w-52 h-9 text-sm">
+            <SelectValue placeholder="Select user" />
+          </SelectTrigger>
+          <SelectContent>
+            {sapUsers.map((user) => (
+              <SelectItem key={user.code} value={user.code}>
+                {user.name} ({user.code})
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
 
         {activeField === "ShipDate" ? (
           <Input
@@ -95,7 +106,7 @@ const UpdatePanel = ({ selectedCount, selectedRows, onUpdate, onClear }: UpdateP
 
         <Button
           size="sm"
-          disabled={!currentValue || !updatedBy.trim()}
+          disabled={!currentValue || !updatedBy}
           onClick={() => setShowSQL(true)}
           className="bg-primary text-primary-foreground hover:bg-primary/90"
         >
@@ -125,7 +136,7 @@ const UpdatePanel = ({ selectedCount, selectedRows, onUpdate, onClear }: UpdateP
             size="sm"
             className="mt-2 bg-success text-success-foreground hover:bg-success/90"
             onClick={() => {
-              onUpdate(activeField, currentValue, updatedBy);
+              onUpdate(activeField, currentValue, displayUpdatedBy);
               setShowSQL(false);
               if (activeField === "ShipDate") setNewDate("");
               else if (activeField === "Price") setNewPrice("");

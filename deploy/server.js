@@ -201,10 +201,29 @@ app.post('/api/por1/update-field', async (req, res) => {
   }
 });
 
+// GET active SAP users from OUSR
+app.get('/api/sap-users', async (req, res) => {
+  try {
+    const pool = await sql.connect(dbConfig);
+    const result = await pool.request().query(`
+      SELECT USER_CODE, U_NAME
+      FROM OUSR
+      WHERE LOCKED = 'N'
+      ORDER BY U_NAME
+    `);
+    const users = result.recordset.map(r => ({
+      code: r.USER_CODE,
+      name: r.U_NAME || r.USER_CODE,
+    }));
+    res.json(users);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
 // Keep old endpoint for backward compat
 app.post('/api/por1/update-shipdate', async (req, res) => {
   const { rows, newDate, updatedBy } = req.body;
-  // Redirect to new handler
   req.body = { rows, field: 'ShipDate', value: newDate, updatedBy };
   return res.redirect(307, '/api/por1/update-field');
 });

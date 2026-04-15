@@ -1,4 +1,4 @@
-import { POR1Row, ApiConfig } from "@/types/por1";
+import { POR1Row, ApiConfig, SapUser } from "@/types/por1";
 import { MOCK_ROWS } from "@/data/mockPor1Data";
 
 const FALLBACK_PROXY_URL = 'http://10.1.0.88:3001';
@@ -84,6 +84,17 @@ export async function fetchOpenPOR1Rows(): Promise<POR1Row[]> {
   }
 
   return requestJson<POR1Row[]>('/api/por1/open-rows');
+}
+
+export async function fetchSapUsers(): Promise<SapUser[]> {
+  if (config.mode === 'mock') {
+    return [
+      { code: 'manager', name: 'Manager' },
+      { code: 'jborremans', name: 'Jan Borremans' },
+    ];
+  }
+
+  return requestJson<SapUser[]>('/api/sap-users');
 }
 
 export async function checkProxyHealth(): Promise<ProxyHealthResponse> {
