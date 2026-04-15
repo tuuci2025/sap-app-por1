@@ -3,7 +3,7 @@ import { POR1Row } from "@/types/por1";
 import { Checkbox } from "@/components/ui/checkbox";
 import { ArrowUp, ArrowDown, ArrowUpDown } from "lucide-react";
 
-type SortKey = "DocNum" | "CardName" | "ItemCode" | "Dscription" | "OpenQty" | "ShipDate" | "WhsCode";
+type SortKey = "DocNum" | "CardName" | "ItemCode" | "Dscription" | "OpenQty" | "Price" | "LineTotal" | "ShipDate" | "WhsCode";
 type SortDir = "asc" | "desc";
 
 interface POR1TableProps {
@@ -35,6 +35,8 @@ const DEFAULT_WIDTHS: Record<string, number> = {
   ItemCode: 130,
   Dscription: 200,
   OpenQty: 75,
+  Price: 90,
+  LineTotal: 100,
   ShipDate: 100,
   WhsCode: 50,
 };
@@ -122,6 +124,8 @@ const POR1Table = ({ rows, selectedKeys, onToggle, onToggleAll, allSelected }: P
           <col style={{ width: colWidths.ItemCode }} />
           <col style={{ width: colWidths.Dscription }} />
           <col style={{ width: colWidths.OpenQty }} />
+          <col style={{ width: colWidths.Price }} />
+          <col style={{ width: colWidths.LineTotal }} />
           <col style={{ width: colWidths.ShipDate }} />
           <col style={{ width: colWidths.WhsCode }} />
         </colgroup>
@@ -148,6 +152,12 @@ const POR1Table = ({ rows, selectedKeys, onToggle, onToggleAll, allSelected }: P
             </th>
             <th className={`${thClass} text-right`} onClick={() => handleSort("OpenQty")}>
               Open Qty<SortIcon col="OpenQty" /><ResizeHandle col="OpenQty" />
+            </th>
+            <th className={`${thClass} text-right`} onClick={() => handleSort("Price")}>
+              Unit Price<SortIcon col="Price" /><ResizeHandle col="Price" />
+            </th>
+            <th className={`${thClass} text-right`} onClick={() => handleSort("LineTotal")}>
+              Total LC<SortIcon col="LineTotal" /><ResizeHandle col="LineTotal" />
             </th>
             <th className={thClass} onClick={() => handleSort("ShipDate")}>
               Delivery Date<SortIcon col="ShipDate" /><ResizeHandle col="ShipDate" />
@@ -185,6 +195,8 @@ const POR1Table = ({ rows, selectedKeys, onToggle, onToggleAll, allSelected }: P
                 <td className="px-3 py-2 font-mono text-xs truncate">{row.ItemCode}</td>
                 <td className="px-3 py-2 truncate" title={row.Dscription}>{row.Dscription}</td>
                 <td className="px-3 py-2 text-right font-mono">{row.OpenQty.toLocaleString()}</td>
+                <td className="px-3 py-2 text-right font-mono">{row.Price.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
+                <td className="px-3 py-2 text-right font-mono">{row.LineTotal.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
                 <td className={`px-3 py-2 font-mono text-xs ${getDateClass(row.ShipDate)}`}>{row.ShipDate}</td>
                 <td className="px-3 py-2 font-mono text-xs text-muted-foreground">{row.WhsCode}</td>
               </tr>
@@ -192,7 +204,7 @@ const POR1Table = ({ rows, selectedKeys, onToggle, onToggleAll, allSelected }: P
           })}
           {rows.length === 0 && (
             <tr>
-              <td colSpan={8} className="px-3 py-12 text-center text-muted-foreground">
+              <td colSpan={10} className="px-3 py-12 text-center text-muted-foreground">
                 No open POR1 rows found matching your filter.
               </td>
             </tr>
