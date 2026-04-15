@@ -1,6 +1,6 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { ShipDateChangeLog } from "@/types/por1";
-import { getChangeLog } from "@/lib/changeLog";
+import { CHANGE_LOG_UPDATED_EVENT, getChangeLog } from "@/lib/changeLog";
 import { Button } from "@/components/ui/button";
 import { History, ChevronDown, ChevronRight, RefreshCw } from "lucide-react";
 
@@ -9,16 +9,25 @@ const ChangeLogPanel = () => {
   const [log, setLog] = useState<ShipDateChangeLog[]>([]);
   const [loading, setLoading] = useState(false);
 
-  const refresh = async () => {
+  const refresh = useCallback(async () => {
     setLoading(true);
     const data = await getChangeLog();
     setLog(data);
     setLoading(false);
-  };
+  }, []);
 
   useEffect(() => {
-    if (expanded) refresh();
-  }, [expanded]);
+    if (expanded) void refresh();
+  }, [expanded, refresh]);
+
+  useEffect(() => {
+    const handleChangeLogUpdated = () => {
+      if (expanded) void refresh();
+    };
+
+    window.addEventListener(CHANGE_LOG_UPDATED_EVENT, handleChangeLogUpdated);
+    return () => window.removeEventListener(CHANGE_LOG_UPDATED_EVENT, handleChangeLogUpdated);
+  }, [expanded, refresh]);
 
   return (
     <div className="border-t border-border bg-card">
@@ -53,7 +62,7 @@ const ChangeLogPanel = () => {
                     </span>
                   </div>
                   <div className="text-xs text-muted-foreground">
-                    Changed <span className="font-semibold text-accent">{entry.rowCount} row{entry.rowCount > 1 ? "s" : ""}</span> → 
+                    Changed <span className="font-semibold text-accent">{entry.rowCount} row{entry.rowCount > 1 ? "s" : ""}</span> →
                     <span className="font-mono font-semibold text-foreground ml-1">{entry.newDate}</span>
                   </div>
                   <details className="mt-2">
@@ -61,7 +70,7 @@ const ChangeLogPanel = () => {
                       View affected rows
                     </summary>
                     <div className="mt-1 text-xs font-mono space-y-0.5 max-h-32 overflow-y-auto">
-                      {entry.rows.map((r: any, i: number) => (
+                      {entry.rows.map((r, i) => (
                         <div key={i} className="text-muted-foreground">
                           DocEntry: {r.DocEntry}, LineNum: {r.LineNum}
                           {r.oldDate && <span className="ml-2">(was: {r.oldDate})</span>}

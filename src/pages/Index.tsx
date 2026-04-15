@@ -136,43 +136,60 @@ const Index = () => {
     .map((r) => ({ DocEntry: r.DocEntry, LineNum: r.LineNum }));
 
   const handleUpdate = async (field: 'ShipDate' | 'Price' | 'LineTotal', value: string, updatedBy: string, sapPassword?: string) => {
-    const affectedRows = rows
-      .filter((r) => selectedKeys.has(rowKey(r)))
-      .map((r) => ({ DocEntry: r.DocEntry, LineNum: r.LineNum, oldDate: r.ShipDate.split("T")[0] }));
+    const selectedRowDetails = rows.filter((r) => selectedKeys.has(rowKey(r)));
 
     try {
       const result = await executeFieldUpdate(selectedRows, field, value, updatedBy, sapPassword);
-      if (result.success || (result.affectedRows && result.affectedRows > 0)) {
+      const successfulRowKeys = new Set(
+        (result.details || []).flatMap((detail) =>
+          (detail.lineNums || []).map((lineNum) => `${detail.docEntry}-${lineNum}`)
+        )
+      );
+      const successfulRows = selectedRowDetails.filter((row) => successfulRowKeys.has(rowKey(row)));
+
+      if (result.success || successfulRows.length > 0) {
         setError(null);
         setProxyStatus("online");
         setDataStatus("online");
 
-        // Log the change
-        await addChangeLogEntry({
-          timestamp: new Date().toISOString(),
-          updatedBy,
-          newDate: `${field}=${value}`,
-          rowCount: affectedRows.length,
-          rows: affectedRows,
-        });
+        if (successfulRows.length > 0) {
+          const changeSaved = await addChangeLogEntry({
+            timestamp: new Date().toISOString(),
+            updatedBy,
+            newDate: `${field}=${value}`,
+            rowCount: successfulRows.length,
+            rows: successfulRows.map((row) => ({
+              DocEntry: row.DocEntry,
+              LineNum: row.LineNum,
+              oldDate: row.ShipDate.split("T")[0],
+            })),
+          });
 
-        // Update local state
+          if (!changeSaved) {
+            toast({
+              title: "Change Log Error",
+              description: "The SAP update worked, but saving the internal change log failed.",
+              variant: "destructive",
+            });
+          }
+        }
+
         setRows((prev) =>
           prev.map((r) => {
-            if (!selectedKeys.has(rowKey(r))) return r;
+            if (!successfulRowKeys.has(rowKey(r))) return r;
             if (field === 'ShipDate') return { ...r, ShipDate: value };
             if (field === 'Price') return { ...r, Price: parseFloat(value) };
             if (field === 'LineTotal') return { ...r, LineTotal: parseFloat(value) };
             return r;
           })
         );
-        setSelectedKeys(new Set());
+        setSelectedKeys((prev) => new Set([...prev].filter((key) => !successfulRowKeys.has(key))));
         const fieldLabel = field === 'ShipDate' ? 'Delivery Date' : field === 'Price' ? 'Unit Price' : 'Total LC';
-        const partialWarning = result.errors ? ` (${result.errors.length} document(s) had errors)` : '';
+        const partialWarning = result.errors?.length ? ` ${result.errors.length} document(s) failed.` : '';
         toast({
-          title: `${fieldLabel} Updated`,
-          description: `${result.affectedRows || selectedRows.length} row(s) updated to ${value}${partialWarning}`,
-          variant: result.errors ? "destructive" : "default",
+          title: result.errors?.length ? `${fieldLabel} Partially Updated` : `${fieldLabel} Updated`,
+          description: `${successfulRows.length} row(s) updated to ${value}.${partialWarning}`,
+          variant: result.errors?.length ? "destructive" : "default",
         });
       } else {
         setDataStatus("error");

@@ -111,12 +111,22 @@ export async function executeFieldUpdate(
   value: string,
   updatedBy: string,
   sapPassword?: string
-): Promise<{ success: boolean; affectedRows?: number; errors?: { docEntry: string; error: string }[] }> {
+): Promise<{
+  success: boolean;
+  affectedRows?: number;
+  details?: { docEntry: number; lineNums?: number[]; linesUpdated: number; status: string; strategy?: string }[];
+  errors?: { docEntry: string; error: string }[];
+}> {
   if (config.mode === 'mock') {
     return { success: true, affectedRows: rows.length };
   }
 
-  return requestJson<{ success: boolean; affectedRows?: number }>('/api/por1/update-field', {
+  return requestJson<{
+    success: boolean;
+    affectedRows?: number;
+    details?: { docEntry: number; lineNums?: number[]; linesUpdated: number; status: string; strategy?: string }[];
+    errors?: { docEntry: string; error: string }[];
+  }>('/api/por1/update-field', {
     method: 'POST',
     body: JSON.stringify({ rows, field, value, updatedBy, sapPassword }),
   });
