@@ -11,6 +11,7 @@ export interface POR1Row {
   Price: number;
   LineTotal: number;
   WhsCode: string;
+  BlockNum: string;
 }
 
 export interface SapUser {
