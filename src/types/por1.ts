@@ -13,6 +13,11 @@ export interface POR1Row {
   WhsCode: string;
 }
 
+export interface SapUser {
+  code: string;
+  name: string;
+}
+
 export interface ApiConfig {
   mode: 'mock' | 'proxy' | 'serviceLayer';
   baseUrl: string;
