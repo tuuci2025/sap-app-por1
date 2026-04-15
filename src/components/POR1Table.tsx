@@ -29,17 +29,17 @@ function getDateClass(dateStr: string): string {
 }
 
 const DEFAULT_WIDTHS: Record<string, number> = {
-  checkbox: 36,
-  DocNum: 70,
-  CardName: 160,
-  ItemCode: 130,
-  Dscription: 200,
-  OpenQty: 75,
-  Price: 90,
-  LineTotal: 100,
-  ShipDate: 100,
-  WhsCode: 50,
-  BlockNum: 90,
+  checkbox: 34,
+  DocNum: 68,
+  CardName: 145,
+  ItemCode: 118,
+  Dscription: 155,
+  OpenQty: 70,
+  Price: 84,
+  LineTotal: 94,
+  ShipDate: 94,
+  WhsCode: 46,
+  BlockNum: 88,
 };
 
 const POR1Table = ({ rows, selectedKeys, onToggle, onToggleAll, allSelected }: POR1TableProps) => {
