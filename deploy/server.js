@@ -128,7 +128,7 @@ app.post('/api/por1/update-field', async (req, res) => {
   // Map frontend field names to SAP Service Layer property names
   const slFieldMap = {
     ShipDate: 'ShipDate',
-    Price: 'Price',
+    Price: 'UnitPrice',
     LineTotal: 'LineTotal',
   };
 
@@ -173,6 +173,8 @@ app.post('/api/por1/update-field', async (req, res) => {
           }
           return { LineNum: line.LineNum };
         });
+
+        const patchBody = { DocumentLines: documentLines };
 
         console.log(`→ PATCH DocEntry ${docEntry}:`, JSON.stringify(patchBody));
 
