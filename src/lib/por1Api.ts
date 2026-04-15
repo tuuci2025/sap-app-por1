@@ -111,7 +111,7 @@ export async function executeFieldUpdate(
   value: string,
   updatedBy: string,
   sapPassword?: string
-): Promise<{ success: boolean; affectedRows?: number }> {
+): Promise<{ success: boolean; affectedRows?: number; errors?: { docEntry: string; error: string }[] }> {
   if (config.mode === 'mock') {
     return { success: true, affectedRows: rows.length };
   }

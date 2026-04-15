@@ -142,7 +142,7 @@ const Index = () => {
 
     try {
       const result = await executeFieldUpdate(selectedRows, field, value, updatedBy, sapPassword);
-      if (result.success) {
+      if (result.success || (result.affectedRows && result.affectedRows > 0)) {
         setError(null);
         setProxyStatus("online");
         setDataStatus("online");
@@ -168,13 +168,16 @@ const Index = () => {
         );
         setSelectedKeys(new Set());
         const fieldLabel = field === 'ShipDate' ? 'Delivery Date' : field === 'Price' ? 'Unit Price' : 'Total LC';
+        const partialWarning = result.errors ? ` (${result.errors.length} document(s) had errors)` : '';
         toast({
           title: `${fieldLabel} Updated`,
-          description: `${selectedRows.length} row(s) updated to ${value}`,
+          description: `${result.affectedRows || selectedRows.length} row(s) updated to ${value}${partialWarning}`,
+          variant: result.errors ? "destructive" : "default",
         });
       } else {
         setDataStatus("error");
-        toast({ title: "Update Failed", description: "The server did not confirm the update.", variant: "destructive" });
+        const errDetail = result.errors?.map((e: any) => `DocEntry ${e.docEntry}: ${e.error}`).join('\n') || 'Unknown error';
+        toast({ title: "Update Failed", description: errDetail, variant: "destructive" });
       }
     } catch (err) {
       const message = err instanceof Error ? err.message : "Unknown error";
