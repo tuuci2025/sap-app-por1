@@ -174,7 +174,7 @@ app.post('/api/por1/update-field', async (req, res) => {
           return { LineNum: line.LineNum };
         });
 
-        const patchBody = { DocumentLines: documentLines };
+        console.log(`→ PATCH DocEntry ${docEntry}:`, JSON.stringify(patchBody));
 
         const patchRes = await slFetch(`/PurchaseOrders(${docEntry})`, {
           method: 'PATCH',
