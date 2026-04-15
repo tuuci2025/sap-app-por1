@@ -67,8 +67,8 @@ async function slLogin(username, password) {
   return slSessionId;
 }
 
-async function slFetch(path, options = {}) {
-  if (!slSessionId) await slLogin();
+async function slFetch(path, options = {}, credentials = {}) {
+  if (!slSessionId) await slLogin(credentials.username, credentials.password);
 
   const url = `${SL_CONFIG.baseUrl}${path}`;
   const headers = {
@@ -79,10 +79,10 @@ async function slFetch(path, options = {}) {
 
   let res = await fetch(url, { ...options, headers });
 
-  // Session expired — re-login and retry once
+  // Session expired — re-login with same credentials and retry once
   if (res.status === 401) {
     console.log('Session expired, re-authenticating...');
-    await slLogin();
+    await slLogin(credentials.username, credentials.password);
     headers.Cookie = `B1SESSION=${slSessionId}`;
     res = await fetch(url, { ...options, headers });
   }
