@@ -38,11 +38,7 @@ const SL_CONFIG = {
 };
 
 // ── Service Layer Session Management ─────────────────────────
-let slSessionId = null;
-let slCurrentUser = null;
-let slCookies = {};
-
-function storeServiceLayerCookies(res) {
+function storeServiceLayerCookies(res, targetCookies) {
   const rawCookies = res.headers?.raw?.()['set-cookie'] || [];
 
   for (const cookie of rawCookies) {
@@ -54,70 +50,89 @@ function storeServiceLayerCookies(res) {
     const value = nameValue.slice(separatorIndex + 1).trim();
     if (!name) continue;
 
-    slCookies[name] = value;
+    targetCookies[name] = value;
   }
 }
 
-function getServiceLayerCookieHeader() {
-  return Object.entries(slCookies)
+function getServiceLayerCookieHeader(cookies) {
+  return Object.entries(cookies)
     .map(([name, value]) => `${name}=${value}`)
     .join('; ');
 }
 
-async function slLogin(username, password) {
-  const user = username || SL_CONFIG.username;
-  const pass = password || SL_CONFIG.password;
+function createServiceLayerSession() {
+  let sessionId = null;
+  let currentUser = null;
+  let cookies = {};
 
-  slCookies = {};
+  async function login(username, password) {
+    const user = username || SL_CONFIG.username;
+    const pass = password || SL_CONFIG.password;
 
-  const res = await fetch(`${SL_CONFIG.baseUrl}/Login`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({
-      CompanyDB: SL_CONFIG.companyDb,
-      UserName: user,
-      Password: pass,
-    }),
-  });
+    cookies = {};
+    sessionId = null;
+    currentUser = null;
 
-  if (!res.ok) {
-    const text = await res.text();
-    throw new Error(`Service Layer login failed for user '${user}' (${res.status}): ${text}`);
+    const res = await fetch(`${SL_CONFIG.baseUrl}/Login`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        CompanyDB: SL_CONFIG.companyDb,
+        UserName: user,
+        Password: pass,
+      }),
+    });
+
+    if (!res.ok) {
+      const text = await res.text();
+      throw new Error(`Service Layer login failed for user '${user}' (${res.status}): ${text}`);
+    }
+
+    storeServiceLayerCookies(res, cookies);
+    const data = await res.json();
+    sessionId = data.SessionId;
+    cookies.B1SESSION = data.SessionId;
+    currentUser = user;
+    console.log(`Service Layer session established for '${user}':`, sessionId);
+    return sessionId;
   }
 
-  storeServiceLayerCookies(res);
-  const data = await res.json();
-  slSessionId = data.SessionId;
-  slCookies.B1SESSION = data.SessionId;
-  slCurrentUser = user;
-  console.log(`Service Layer session established for '${user}':`, slSessionId);
-  return slSessionId;
-}
+  async function request(path, options = {}, credentials = {}) {
+    if (!sessionId) await login(credentials.username, credentials.password);
 
-async function slFetch(path, options = {}, credentials = {}) {
-  if (!slSessionId) await slLogin(credentials.username, credentials.password);
+    const url = `${SL_CONFIG.baseUrl}${path}`;
+    const headers = {
+      'Content-Type': 'application/json',
+      Cookie: getServiceLayerCookieHeader(cookies),
+      ...options.headers,
+    };
 
-  const url = `${SL_CONFIG.baseUrl}${path}`;
-  const headers = {
-    'Content-Type': 'application/json',
-    Cookie: getServiceLayerCookieHeader(),
-    ...options.headers,
+    let res = await fetch(url, { ...options, headers });
+    storeServiceLayerCookies(res, cookies);
+
+    if (res.status === 401) {
+      console.log('Session expired, re-authenticating...');
+      await login(credentials.username, credentials.password);
+      headers.Cookie = getServiceLayerCookieHeader(cookies);
+      res = await fetch(url, { ...options, headers });
+      storeServiceLayerCookies(res, cookies);
+    }
+
+    return res;
+  }
+
+  function status() {
+    return { sessionId, currentUser };
+  }
+
+  return {
+    login,
+    fetch: request,
+    status,
   };
-
-  let res = await fetch(url, { ...options, headers });
-  storeServiceLayerCookies(res);
-
-  // Session expired — re-login with same credentials and retry once
-  if (res.status === 401) {
-    console.log('Session expired, re-authenticating...');
-    await slLogin(credentials.username, credentials.password);
-    headers.Cookie = getServiceLayerCookieHeader();
-    res = await fetch(url, { ...options, headers });
-    storeServiceLayerCookies(res);
-  }
-
-  return res;
 }
+
+const sharedServiceLayerSession = createServiceLayerSession();
 
 // ── Routes ───────────────────────────────────────────────────
 
@@ -176,10 +191,8 @@ app.post('/api/por1/update-field', async (req, res) => {
       byDocEntry[row.DocEntry].push(row.LineNum);
     }
 
-    // Login once before processing all documents
     const slUser = sapPassword ? sapUserCode : undefined;
     const slPass = sapPassword || undefined;
-    await slLogin(slUser, slPass);
     const credentials = { username: slUser, password: slPass };
 
     const results = [];
@@ -187,10 +200,10 @@ app.post('/api/por1/update-field', async (req, res) => {
 
     for (const [docEntry, lineNums] of Object.entries(byDocEntry)) {
       try {
-        // Re-authenticate before each document to ensure a fresh session
-        await slLogin(slUser, slPass);
+        const session = createServiceLayerSession();
+        await session.login(slUser, slPass);
 
-        const getRes = await slFetch(`/PurchaseOrders(${docEntry})`, {}, credentials);
+        const getRes = await session.fetch(`/PurchaseOrders(${docEntry})`, {}, credentials);
         if (!getRes.ok) {
           const errText = await getRes.text();
           errors.push({ docEntry, error: `GET failed (${getRes.status}): ${errText}` });
@@ -210,7 +223,7 @@ app.post('/api/por1/update-field', async (req, res) => {
 
         console.log(`→ PATCH DocEntry ${docEntry}:`, JSON.stringify(patchBody));
 
-        const patchRes = await slFetch(`/PurchaseOrders(${docEntry})`, {
+        const patchRes = await session.fetch(`/PurchaseOrders(${docEntry})`, {
           method: 'PATCH',
           body: JSON.stringify(patchBody),
         }, credentials);
@@ -276,10 +289,11 @@ app.post('/api/por1/update-shipdate', async (req, res) => {
 
 // Health check
 app.get('/api/health', (req, res) => {
+  const sharedStatus = sharedServiceLayerSession.status();
   res.json({
     status: 'ok',
     mode: 'service-layer',
-    slSession: slSessionId ? 'active' : 'none',
+    slSession: sharedStatus.sessionId ? 'active' : 'none',
   });
 });
 
@@ -293,5 +307,5 @@ app.listen(3001, '0.0.0.0', () => {
   console.log('Reads:  Direct MSSQL');
   console.log('Writes: SAP Service Layer → ADO1/ADOC audit trail');
   // Pre-authenticate with Service Layer (as manager for health/read operations)
-  slLogin().catch(err => console.warn('Initial SL login failed (will retry on first request):', err.message));
+  sharedServiceLayerSession.login().catch(err => console.warn('Initial SL login failed (will retry on first request):', err.message));
 });
