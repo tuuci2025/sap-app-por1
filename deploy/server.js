@@ -144,16 +144,43 @@ function normalizeLineNumbers(lineNums) {
   );
 }
 
-function valuesMatch(field, actualValue, expectedValue) {
+function getComparableFieldValues(line, field) {
   if (field === 'ShipDate') {
-    return String(actualValue || '').split('T')[0] === String(expectedValue || '').split('T')[0];
+    return [String(line?.ShipDate || '').split('T')[0]];
   }
 
-  const actualNumber = Number(actualValue);
+  if (field === 'UnitPrice') {
+    return [line?.UnitPrice, line?.Price];
+  }
+
+  return [line?.[field]];
+}
+
+function valuesMatch(field, line, expectedValue) {
+  if (field === 'ShipDate') {
+    const expectedDate = String(expectedValue || '').split('T')[0];
+    return getComparableFieldValues(line, field).some((actualValue) => actualValue === expectedDate);
+  }
+
   const expectedNumber = Number(expectedValue);
-  return Number.isFinite(actualNumber)
-    && Number.isFinite(expectedNumber)
-    && Math.abs(actualNumber - expectedNumber) < 0.000001;
+  if (!Number.isFinite(expectedNumber)) return false;
+
+  return getComparableFieldValues(line, field).some((actualValue) => {
+    const actualNumber = Number(actualValue);
+    return Number.isFinite(actualNumber)
+      && Math.abs(actualNumber - expectedNumber) < 0.000001;
+  });
+}
+
+function buildLineFieldPatch(field, value) {
+  if (field === 'UnitPrice') {
+    return {
+      UnitPrice: value,
+      Price: value,
+    };
+  }
+
+  return { [field]: value };
 }
 
 function buildDocumentLinesPatch(documentLines, targetLineNums, field, value, includeUntouchedLines) {
@@ -163,7 +190,7 @@ function buildDocumentLinesPatch(documentLines, targetLineNums, field, value, in
     .filter((line) => includeUntouchedLines || targetSet.has(Number(line.LineNum)))
     .map((line) => {
       if (targetSet.has(Number(line.LineNum))) {
-        return { LineNum: line.LineNum, [field]: value };
+        return { LineNum: line.LineNum, ...buildLineFieldPatch(field, value) };
       }
       return { LineNum: line.LineNum };
     });
@@ -174,7 +201,24 @@ function updatedLinesVerified(documentLines, targetLineNums, field, value) {
   const targetLines = documentLines.filter((line) => targetSet.has(Number(line.LineNum)));
 
   return targetLines.length === targetSet.size
-    && targetLines.every((line) => valuesMatch(field, line[field], value));
+    && targetLines.every((line) => valuesMatch(field, line, value));
+}
+
+async function verifyUpdatedLines(session, docEntry, lineNums, field, value, credentials) {
+  const maxAttempts = 3;
+
+  for (let attempt = 1; attempt <= maxAttempts; attempt += 1) {
+    const verifiedDocument = await getPurchaseOrder(session, docEntry, credentials);
+    if (updatedLinesVerified(verifiedDocument.DocumentLines, lineNums, field, value)) {
+      return;
+    }
+
+    if (attempt < maxAttempts) {
+      await new Promise((resolve) => setTimeout(resolve, 400));
+    }
+  }
+
+  throw new Error(`Verification failed after patch for DocEntry ${docEntry}`);
 }
 
 async function getPurchaseOrder(session, docEntry, credentials) {
@@ -236,11 +280,7 @@ async function updatePurchaseOrderField(docEntry, lineNums, slField, slValue, cr
       console.log(`→ PATCH DocEntry ${docEntry} (${strategy.name}):`, JSON.stringify(patchBody));
 
       await patchPurchaseOrder(session, docEntry, patchBody, credentials);
-
-      const verifiedDocument = await getPurchaseOrder(session, docEntry, credentials);
-      if (!updatedLinesVerified(verifiedDocument.DocumentLines, normalizedLineNums, slField, slValue)) {
-        throw new Error(`Verification failed after ${strategy.name} patch`);
-      }
+      await verifyUpdatedLines(session, docEntry, normalizedLineNums, slField, slValue, credentials);
 
       return { strategy: strategy.name };
     } catch (error) {
@@ -316,11 +356,13 @@ app.post('/api/por1/update-field', async (req, res) => {
 
     for (const [docEntry, lineNums] of Object.entries(byDocEntry)) {
       try {
+        const normalizedDocLineNums = normalizeLineNumbers(lineNums);
         const { strategy } = await updatePurchaseOrderField(docEntry, lineNums, slField, slValue, credentials);
 
         results.push({
           docEntry: Number(docEntry),
-          linesUpdated: normalizeLineNumbers(lineNums).length,
+          lineNums: normalizedDocLineNums,
+          linesUpdated: normalizedDocLineNums.length,
           status: 'success',
           strategy,
         });
