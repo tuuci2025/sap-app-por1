@@ -122,6 +122,7 @@ const POR1Table = ({ rows, selectedKeys, onToggle, onToggleAll, allSelected }: P
         <colgroup>
           <col style={{ width: colWidths.checkbox }} />
           <col style={{ width: colWidths.DocNum }} />
+          <col style={{ width: colWidths.NumAtCard }} />
           <col style={{ width: colWidths.CardName }} />
           <col style={{ width: colWidths.ItemCode }} />
           <col style={{ width: colWidths.Dscription }} />
@@ -131,7 +132,6 @@ const POR1Table = ({ rows, selectedKeys, onToggle, onToggleAll, allSelected }: P
           <col style={{ width: colWidths.ShipDate }} />
           <col style={{ width: colWidths.WhsCode }} />
           <col style={{ width: colWidths.BlockNum }} />
-          <col style={{ width: colWidths.NumAtCard }} />
         </colgroup>
         <thead>
           <tr className="bg-table-header text-table-header-foreground sticky top-0 z-10">
@@ -144,6 +144,9 @@ const POR1Table = ({ rows, selectedKeys, onToggle, onToggleAll, allSelected }: P
             </th>
             <th className={thClass} onClick={() => handleSort("DocNum")}>
               PO #<SortIcon col="DocNum" /><ResizeHandle col="DocNum" />
+            </th>
+            <th className={thClass} onClick={() => handleSort("NumAtCard")}>
+              Referentie<SortIcon col="NumAtCard" /><ResizeHandle col="NumAtCard" />
             </th>
             <th className={thClass} onClick={() => handleSort("CardName")}>
               Vendor<SortIcon col="CardName" /><ResizeHandle col="CardName" />
@@ -172,9 +175,6 @@ const POR1Table = ({ rows, selectedKeys, onToggle, onToggleAll, allSelected }: P
             <th className={thClass} onClick={() => handleSort("BlockNum")}>
               Sales Order<SortIcon col="BlockNum" /><ResizeHandle col="BlockNum" />
             </th>
-            <th className={thClass} onClick={() => handleSort("NumAtCard")}>
-              Referentie<SortIcon col="NumAtCard" /><ResizeHandle col="NumAtCard" />
-            </th>
           </tr>
         </thead>
         <tbody>
@@ -201,6 +201,7 @@ const POR1Table = ({ rows, selectedKeys, onToggle, onToggleAll, allSelected }: P
                   />
                 </td>
                 <td className="px-3 py-2 font-mono font-medium truncate">{row.DocNum}</td>
+                <td className="px-3 py-2 font-mono text-xs truncate" title={row.NumAtCard}>{row.NumAtCard}</td>
                 <td className="px-3 py-2 truncate" title={row.CardName}>{row.CardName}</td>
                 <td className="px-3 py-2 font-mono text-xs truncate">{row.ItemCode}</td>
                 <td className="px-3 py-2 truncate" title={row.Dscription}>{row.Dscription}</td>
@@ -210,7 +211,6 @@ const POR1Table = ({ rows, selectedKeys, onToggle, onToggleAll, allSelected }: P
                 <td className={`px-3 py-2 font-mono text-xs ${getDateClass(row.ShipDate)}`}>{row.ShipDate}</td>
                 <td className="px-3 py-2 font-mono text-xs text-muted-foreground">{row.WhsCode}</td>
                 <td className="px-3 py-2 font-mono text-xs truncate" title={row.BlockNum}>{row.BlockNum}</td>
-                <td className="px-3 py-2 font-mono text-xs truncate" title={row.NumAtCard}>{row.NumAtCard}</td>
               </tr>
             );
           })}
