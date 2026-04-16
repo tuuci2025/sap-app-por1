@@ -12,6 +12,7 @@ export interface POR1Row {
   LineTotal: number;
   WhsCode: string;
   BlockNum: string;
+  NumAtCard: string;
 }
 
 export interface SapUser {
