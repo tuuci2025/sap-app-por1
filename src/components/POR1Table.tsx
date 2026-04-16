@@ -3,7 +3,7 @@ import { POR1Row } from "@/types/por1";
 import { Checkbox } from "@/components/ui/checkbox";
 import { ArrowUp, ArrowDown, ArrowUpDown } from "lucide-react";
 
-type SortKey = "DocNum" | "CardName" | "ItemCode" | "Dscription" | "OpenQty" | "Price" | "LineTotal" | "ShipDate" | "WhsCode" | "BlockNum";
+type SortKey = "DocNum" | "CardName" | "ItemCode" | "Dscription" | "OpenQty" | "Price" | "LineTotal" | "ShipDate" | "WhsCode" | "BlockNum" | "NumAtCard";
 type SortDir = "asc" | "desc";
 
 interface POR1TableProps {
@@ -30,16 +30,17 @@ function getDateClass(dateStr: string): string {
 
 const DEFAULT_WIDTHS: Record<string, number> = {
   checkbox: 34,
-  DocNum: 68,
-  CardName: 145,
-  ItemCode: 118,
-  Dscription: 155,
-  OpenQty: 70,
-  Price: 84,
-  LineTotal: 94,
-  ShipDate: 94,
-  WhsCode: 46,
-  BlockNum: 88,
+  DocNum: 62,
+  CardName: 130,
+  ItemCode: 110,
+  Dscription: 140,
+  OpenQty: 62,
+  Price: 78,
+  LineTotal: 88,
+  ShipDate: 88,
+  WhsCode: 42,
+  BlockNum: 82,
+  NumAtCard: 88,
 };
 
 const POR1Table = ({ rows, selectedKeys, onToggle, onToggleAll, allSelected }: POR1TableProps) => {
@@ -130,6 +131,7 @@ const POR1Table = ({ rows, selectedKeys, onToggle, onToggleAll, allSelected }: P
           <col style={{ width: colWidths.ShipDate }} />
           <col style={{ width: colWidths.WhsCode }} />
           <col style={{ width: colWidths.BlockNum }} />
+          <col style={{ width: colWidths.NumAtCard }} />
         </colgroup>
         <thead>
           <tr className="bg-table-header text-table-header-foreground sticky top-0 z-10">
@@ -170,6 +172,9 @@ const POR1Table = ({ rows, selectedKeys, onToggle, onToggleAll, allSelected }: P
             <th className={thClass} onClick={() => handleSort("BlockNum")}>
               Sales Order<SortIcon col="BlockNum" /><ResizeHandle col="BlockNum" />
             </th>
+            <th className={thClass} onClick={() => handleSort("NumAtCard")}>
+              Referentie<SortIcon col="NumAtCard" /><ResizeHandle col="NumAtCard" />
+            </th>
           </tr>
         </thead>
         <tbody>
@@ -205,12 +210,13 @@ const POR1Table = ({ rows, selectedKeys, onToggle, onToggleAll, allSelected }: P
                 <td className={`px-3 py-2 font-mono text-xs ${getDateClass(row.ShipDate)}`}>{row.ShipDate}</td>
                 <td className="px-3 py-2 font-mono text-xs text-muted-foreground">{row.WhsCode}</td>
                 <td className="px-3 py-2 font-mono text-xs truncate" title={row.BlockNum}>{row.BlockNum}</td>
+                <td className="px-3 py-2 font-mono text-xs truncate" title={row.NumAtCard}>{row.NumAtCard}</td>
               </tr>
             );
           })}
           {rows.length === 0 && (
             <tr>
-              <td colSpan={11} className="px-3 py-12 text-center text-muted-foreground">
+              <td colSpan={12} className="px-3 py-12 text-center text-muted-foreground">
                 No open POR1 rows found matching your filter.
               </td>
             </tr>

@@ -109,7 +109,8 @@ const Index = () => {
         r.Dscription.toLowerCase().includes(term) ||
         r.CardName.toLowerCase().includes(term) ||
         r.CardCode.toLowerCase().includes(term) ||
-        (r.BlockNum && r.BlockNum.toLowerCase().includes(term))
+        (r.BlockNum && r.BlockNum.toLowerCase().includes(term)) ||
+        (r.NumAtCard && r.NumAtCard.toLowerCase().includes(term))
     );
   }, [rows, searchTerm]);
 

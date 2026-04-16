@@ -306,7 +306,8 @@ app.get('/api/por1/open-rows', async (req, res) => {
         T0.ItemCode, T0.Dscription,
         T0.ShipDate, T0.OpenQty,
         T0.Price, T0.LineTotal, T0.WhsCode,
-        ISNULL(CAST(T0.BlockNum AS NVARCHAR), '') AS BlockNum
+        ISNULL(CAST(T0.BlockNum AS NVARCHAR), '') AS BlockNum,
+        ISNULL(T1.NumAtCard, '') AS NumAtCard
       FROM POR1 T0
       INNER JOIN OPOR T1 ON T1.DocEntry = T0.DocEntry
       WHERE T1.DocStatus = 'O'
