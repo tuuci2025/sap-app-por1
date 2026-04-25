@@ -13,6 +13,7 @@ export interface POR1Row {
   WhsCode: string;
   BlockNum: string;
   NumAtCard: string;
+  U_PO_Notes_Intern: string;
 }
 
 export interface SapUser {
