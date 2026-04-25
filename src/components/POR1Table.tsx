@@ -202,13 +202,13 @@ const POR1Table = ({ rows, selectedKeys, onToggle, onToggleAll, allSelected }: P
                 </td>
                 <td className="px-3 py-2 font-mono font-medium truncate">{row.DocNum}</td>
                 <td className="px-3 py-2 font-mono text-xs truncate" title={row.NumAtCard}>{row.NumAtCard}</td>
+                <td className={`px-3 py-2 font-mono text-xs ${getDateClass(row.ShipDate)}`}>{row.ShipDate}</td>
                 <td className="px-3 py-2 truncate" title={row.CardName}>{row.CardName}</td>
                 <td className="px-3 py-2 font-mono text-xs truncate">{row.ItemCode}</td>
                 <td className="px-3 py-2 truncate" title={row.Dscription}>{row.Dscription}</td>
                 <td className="px-3 py-2 text-right font-mono">{row.OpenQty.toLocaleString()}</td>
                 <td className="px-3 py-2 text-right font-mono">{row.Price.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
                 <td className="px-3 py-2 text-right font-mono">{row.LineTotal.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
-                <td className={`px-3 py-2 font-mono text-xs ${getDateClass(row.ShipDate)}`}>{row.ShipDate}</td>
                 <td className="px-3 py-2 font-mono text-xs text-muted-foreground">{row.WhsCode}</td>
                 <td className="px-3 py-2 font-mono text-xs truncate" title={row.BlockNum}>{row.BlockNum}</td>
               </tr>
