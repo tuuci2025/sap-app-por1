@@ -222,7 +222,7 @@ const POR1Table = ({ rows, selectedKeys, onToggle, onToggleAll, allSelected }: P
           })}
           {rows.length === 0 && (
             <tr>
-              <td colSpan={12} className="px-3 py-12 text-center text-muted-foreground">
+              <td colSpan={13} className="px-3 py-12 text-center text-muted-foreground">
                 No open POR1 rows found matching your filter.
               </td>
             </tr>
