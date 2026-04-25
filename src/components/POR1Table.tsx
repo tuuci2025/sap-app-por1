@@ -177,6 +177,9 @@ const POR1Table = ({ rows, selectedKeys, onToggle, onToggleAll, allSelected }: P
             <th className={thClass} onClick={() => handleSort("BlockNum")}>
               Sales Order<SortIcon col="BlockNum" /><ResizeHandle col="BlockNum" />
             </th>
+            <th className={thClass} onClick={() => handleSort("U_PO_Notes_Intern")}>
+              Interne Notities<SortIcon col="U_PO_Notes_Intern" /><ResizeHandle col="U_PO_Notes_Intern" />
+            </th>
           </tr>
         </thead>
         <tbody>
