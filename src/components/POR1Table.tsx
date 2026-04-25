@@ -42,6 +42,7 @@ const DEFAULT_WIDTHS: Record<string, number> = {
   BlockNum: 82,
   NumAtCard: 88,
   U_PO_Notes_Intern: 140,
+};
 
 const POR1Table = ({ rows, selectedKeys, onToggle, onToggleAll, allSelected }: POR1TableProps) => {
   const [sortKey, setSortKey] = useState<SortKey | null>(null);
