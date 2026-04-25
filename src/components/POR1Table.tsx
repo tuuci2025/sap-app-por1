@@ -123,13 +123,13 @@ const POR1Table = ({ rows, selectedKeys, onToggle, onToggleAll, allSelected }: P
           <col style={{ width: colWidths.checkbox }} />
           <col style={{ width: colWidths.DocNum }} />
           <col style={{ width: colWidths.NumAtCard }} />
+          <col style={{ width: colWidths.ShipDate }} />
           <col style={{ width: colWidths.CardName }} />
           <col style={{ width: colWidths.ItemCode }} />
           <col style={{ width: colWidths.Dscription }} />
           <col style={{ width: colWidths.OpenQty }} />
           <col style={{ width: colWidths.Price }} />
           <col style={{ width: colWidths.LineTotal }} />
-          <col style={{ width: colWidths.ShipDate }} />
           <col style={{ width: colWidths.WhsCode }} />
           <col style={{ width: colWidths.BlockNum }} />
         </colgroup>
