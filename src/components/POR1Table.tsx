@@ -148,6 +148,9 @@ const POR1Table = ({ rows, selectedKeys, onToggle, onToggleAll, allSelected }: P
             <th className={thClass} onClick={() => handleSort("NumAtCard")}>
               Referentie<SortIcon col="NumAtCard" /><ResizeHandle col="NumAtCard" />
             </th>
+            <th className={thClass} onClick={() => handleSort("ShipDate")}>
+              Delivery Date<SortIcon col="ShipDate" /><ResizeHandle col="ShipDate" />
+            </th>
             <th className={thClass} onClick={() => handleSort("CardName")}>
               Vendor<SortIcon col="CardName" /><ResizeHandle col="CardName" />
             </th>
@@ -165,9 +168,6 @@ const POR1Table = ({ rows, selectedKeys, onToggle, onToggleAll, allSelected }: P
             </th>
             <th className={`${thClass} text-right`} onClick={() => handleSort("LineTotal")}>
               Total LC<SortIcon col="LineTotal" /><ResizeHandle col="LineTotal" />
-            </th>
-            <th className={thClass} onClick={() => handleSort("ShipDate")}>
-              Delivery Date<SortIcon col="ShipDate" /><ResizeHandle col="ShipDate" />
             </th>
             <th className={thClass} onClick={() => handleSort("WhsCode")}>
               Whs<SortIcon col="WhsCode" /><ResizeHandle col="WhsCode" />
