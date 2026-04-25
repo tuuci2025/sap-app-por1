@@ -133,6 +133,7 @@ const POR1Table = ({ rows, selectedKeys, onToggle, onToggleAll, allSelected }: P
           <col style={{ width: colWidths.LineTotal }} />
           <col style={{ width: colWidths.WhsCode }} />
           <col style={{ width: colWidths.BlockNum }} />
+          <col style={{ width: colWidths.U_PO_Notes_Intern }} />
         </colgroup>
         <thead>
           <tr className="bg-table-header text-table-header-foreground sticky top-0 z-10">
