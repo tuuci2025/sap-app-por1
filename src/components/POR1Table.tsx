@@ -216,6 +216,7 @@ const POR1Table = ({ rows, selectedKeys, onToggle, onToggleAll, allSelected }: P
                 <td className="px-3 py-2 text-right font-mono">{row.LineTotal.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
                 <td className="px-3 py-2 font-mono text-xs text-muted-foreground">{row.WhsCode}</td>
                 <td className="px-3 py-2 font-mono text-xs truncate" title={row.BlockNum}>{row.BlockNum}</td>
+                <td className="px-3 py-2 text-xs truncate" title={row.U_PO_Notes_Intern}>{row.U_PO_Notes_Intern}</td>
               </tr>
             );
           })}
