@@ -123,13 +123,13 @@ const POR1Table = ({ rows, selectedKeys, onToggle, onToggleAll, allSelected }: P
           <col style={{ width: colWidths.checkbox }} />
           <col style={{ width: colWidths.DocNum }} />
           <col style={{ width: colWidths.NumAtCard }} />
+          <col style={{ width: colWidths.ShipDate }} />
           <col style={{ width: colWidths.CardName }} />
           <col style={{ width: colWidths.ItemCode }} />
           <col style={{ width: colWidths.Dscription }} />
           <col style={{ width: colWidths.OpenQty }} />
           <col style={{ width: colWidths.Price }} />
           <col style={{ width: colWidths.LineTotal }} />
-          <col style={{ width: colWidths.ShipDate }} />
           <col style={{ width: colWidths.WhsCode }} />
           <col style={{ width: colWidths.BlockNum }} />
         </colgroup>
@@ -148,6 +148,9 @@ const POR1Table = ({ rows, selectedKeys, onToggle, onToggleAll, allSelected }: P
             <th className={thClass} onClick={() => handleSort("NumAtCard")}>
               Referentie<SortIcon col="NumAtCard" /><ResizeHandle col="NumAtCard" />
             </th>
+            <th className={thClass} onClick={() => handleSort("ShipDate")}>
+              Delivery Date<SortIcon col="ShipDate" /><ResizeHandle col="ShipDate" />
+            </th>
             <th className={thClass} onClick={() => handleSort("CardName")}>
               Vendor<SortIcon col="CardName" /><ResizeHandle col="CardName" />
             </th>
@@ -165,9 +168,6 @@ const POR1Table = ({ rows, selectedKeys, onToggle, onToggleAll, allSelected }: P
             </th>
             <th className={`${thClass} text-right`} onClick={() => handleSort("LineTotal")}>
               Total LC<SortIcon col="LineTotal" /><ResizeHandle col="LineTotal" />
-            </th>
-            <th className={thClass} onClick={() => handleSort("ShipDate")}>
-              Delivery Date<SortIcon col="ShipDate" /><ResizeHandle col="ShipDate" />
             </th>
             <th className={thClass} onClick={() => handleSort("WhsCode")}>
               Whs<SortIcon col="WhsCode" /><ResizeHandle col="WhsCode" />
@@ -202,13 +202,13 @@ const POR1Table = ({ rows, selectedKeys, onToggle, onToggleAll, allSelected }: P
                 </td>
                 <td className="px-3 py-2 font-mono font-medium truncate">{row.DocNum}</td>
                 <td className="px-3 py-2 font-mono text-xs truncate" title={row.NumAtCard}>{row.NumAtCard}</td>
+                <td className={`px-3 py-2 font-mono text-xs ${getDateClass(row.ShipDate)}`}>{row.ShipDate}</td>
                 <td className="px-3 py-2 truncate" title={row.CardName}>{row.CardName}</td>
                 <td className="px-3 py-2 font-mono text-xs truncate">{row.ItemCode}</td>
                 <td className="px-3 py-2 truncate" title={row.Dscription}>{row.Dscription}</td>
                 <td className="px-3 py-2 text-right font-mono">{row.OpenQty.toLocaleString()}</td>
                 <td className="px-3 py-2 text-right font-mono">{row.Price.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
                 <td className="px-3 py-2 text-right font-mono">{row.LineTotal.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
-                <td className={`px-3 py-2 font-mono text-xs ${getDateClass(row.ShipDate)}`}>{row.ShipDate}</td>
                 <td className="px-3 py-2 font-mono text-xs text-muted-foreground">{row.WhsCode}</td>
                 <td className="px-3 py-2 font-mono text-xs truncate" title={row.BlockNum}>{row.BlockNum}</td>
               </tr>
