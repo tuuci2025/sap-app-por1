@@ -3,7 +3,7 @@ import { POR1Row } from "@/types/por1";
 import { Checkbox } from "@/components/ui/checkbox";
 import { ArrowUp, ArrowDown, ArrowUpDown } from "lucide-react";
 
-type SortKey = "DocNum" | "CardName" | "ItemCode" | "Dscription" | "OpenQty" | "Price" | "LineTotal" | "ShipDate" | "WhsCode" | "BlockNum" | "NumAtCard";
+type SortKey = "DocNum" | "CardName" | "ItemCode" | "Dscription" | "OpenQty" | "Price" | "LineTotal" | "ShipDate" | "WhsCode" | "BlockNum" | "NumAtCard" | "U_PO_Notes_Intern";
 type SortDir = "asc" | "desc";
 
 interface POR1TableProps {
@@ -41,6 +41,7 @@ const DEFAULT_WIDTHS: Record<string, number> = {
   WhsCode: 42,
   BlockNum: 82,
   NumAtCard: 88,
+  U_PO_Notes_Intern: 140,
 };
 
 const POR1Table = ({ rows, selectedKeys, onToggle, onToggleAll, allSelected }: POR1TableProps) => {
@@ -132,6 +133,7 @@ const POR1Table = ({ rows, selectedKeys, onToggle, onToggleAll, allSelected }: P
           <col style={{ width: colWidths.LineTotal }} />
           <col style={{ width: colWidths.WhsCode }} />
           <col style={{ width: colWidths.BlockNum }} />
+          <col style={{ width: colWidths.U_PO_Notes_Intern }} />
         </colgroup>
         <thead>
           <tr className="bg-table-header text-table-header-foreground sticky top-0 z-10">
@@ -175,6 +177,9 @@ const POR1Table = ({ rows, selectedKeys, onToggle, onToggleAll, allSelected }: P
             <th className={thClass} onClick={() => handleSort("BlockNum")}>
               Sales Order<SortIcon col="BlockNum" /><ResizeHandle col="BlockNum" />
             </th>
+            <th className={thClass} onClick={() => handleSort("U_PO_Notes_Intern")}>
+              Interne Notities<SortIcon col="U_PO_Notes_Intern" /><ResizeHandle col="U_PO_Notes_Intern" />
+            </th>
           </tr>
         </thead>
         <tbody>
@@ -211,12 +216,13 @@ const POR1Table = ({ rows, selectedKeys, onToggle, onToggleAll, allSelected }: P
                 <td className="px-3 py-2 text-right font-mono">{row.LineTotal.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
                 <td className="px-3 py-2 font-mono text-xs text-muted-foreground">{row.WhsCode}</td>
                 <td className="px-3 py-2 font-mono text-xs truncate" title={row.BlockNum}>{row.BlockNum}</td>
+                <td className="px-3 py-2 text-xs truncate" title={row.U_PO_Notes_Intern}>{row.U_PO_Notes_Intern}</td>
               </tr>
             );
           })}
           {rows.length === 0 && (
             <tr>
-              <td colSpan={12} className="px-3 py-12 text-center text-muted-foreground">
+              <td colSpan={13} className="px-3 py-12 text-center text-muted-foreground">
                 No open POR1 rows found matching your filter.
               </td>
             </tr>
