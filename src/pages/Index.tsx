@@ -111,7 +111,8 @@ const Index = () => {
         r.CardCode.toLowerCase().includes(term) ||
         (r.BlockNum && r.BlockNum.toLowerCase().includes(term)) ||
         (r.NumAtCard && r.NumAtCard.toLowerCase().includes(term)) ||
-        (r.U_PO_Notes_Intern && r.U_PO_Notes_Intern.toLowerCase().includes(term))
+        (r.U_PO_Notes_Intern && r.U_PO_Notes_Intern.toLowerCase().includes(term)) ||
+        (r.ShipDate && r.ShipDate.toLowerCase().includes(term))
     );
   }, [rows, searchTerm]);
 
