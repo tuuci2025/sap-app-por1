@@ -20,7 +20,7 @@ const FilterBar = ({ searchTerm, onSearchChange, totalRows, filteredRows }: Filt
         <Input
           value={searchTerm}
           onChange={(e) => onSearchChange(e.target.value)}
-          placeholder="Search by PO#, item code, vendor, description..."
+          placeholder="Search by PO#, item code, vendor, description, Delivery Date (YYYY-MM-DD)..."
           className="pl-9 h-9 text-sm bg-background"
         />
       </div>
