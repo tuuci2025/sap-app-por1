@@ -102,17 +102,19 @@ const Index = () => {
   const filteredRows = useMemo(() => {
     if (!searchTerm.trim()) return rows;
     const term = searchTerm.toLowerCase();
+    const safe = (v: unknown) => (v == null ? "" : String(v).toLowerCase());
     return rows.filter(
       (r) =>
-        String(r.DocNum).includes(term) ||
-        r.ItemCode.toLowerCase().includes(term) ||
-        r.Dscription.toLowerCase().includes(term) ||
-        r.CardName.toLowerCase().includes(term) ||
-        r.CardCode.toLowerCase().includes(term) ||
-        (r.BlockNum && r.BlockNum.toLowerCase().includes(term)) ||
-        (r.NumAtCard && r.NumAtCard.toLowerCase().includes(term)) ||
-        (r.U_PO_Notes_Intern && r.U_PO_Notes_Intern.toLowerCase().includes(term)) ||
-        (r.ShipDate && r.ShipDate.toLowerCase().includes(term))
+        safe(r.DocNum).includes(term) ||
+        safe(r.ItemCode).includes(term) ||
+        safe(r.Dscription).includes(term) ||
+        safe(r.CardName).includes(term) ||
+        safe(r.CardCode).includes(term) ||
+        safe(r.BlockNum).includes(term) ||
+        safe(r.NumAtCard).includes(term) ||
+        safe(r.U_PO_Notes_Intern).includes(term) ||
+        safe(r.ShipDate).includes(term) ||
+        safe(r.ShipDate?.split("T")[0]).includes(term)
     );
   }, [rows, searchTerm]);
 
